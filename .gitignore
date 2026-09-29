@@ -1,0 +1,12 @@
+.env
+chapter_02
+chapter_03
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# MCP filesystem server's sandboxed output directory.
+# Keep the folder itself (via output/.gitkeep) but ignore generated content.
+output/*
+!output/.gitkeep
