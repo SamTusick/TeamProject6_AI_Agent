@@ -71,7 +71,11 @@ def confirm_items(eligible: list[dict], approve_all: bool) -> list[dict]:
     return approved
 
 
-async def run(transcript_path: str, approve_all: bool) -> list[dict]:
+async def run(transcript_path: str, approve_all: bool) -> dict:
+    """Run the full pipeline. Returns a dict with every bucket of items
+    (not just approved) so callers - like the test runner - can check
+    classification outcomes even for items that were never written.
+    """
     print(f"[perceive] reading transcript: {transcript_path}")
     with open(transcript_path, "r", encoding="utf-8") as f:
         transcript = f.read()
@@ -95,7 +99,13 @@ async def run(transcript_path: str, approve_all: bool) -> list[dict]:
 
     await save_approved_items(approved)
 
-    return approved
+    return {
+        "items": items,
+        "eligible": eligible,
+        "needs_info": needs_info,
+        "rejected": rejected,
+        "approved": approved,
+    }
 
 
 def main() -> None:
