@@ -14,6 +14,7 @@ write + read-back smoke test:
 """
 
 import asyncio
+import json
 import shutil
 import sys
 from contextlib import asynccontextmanager
@@ -91,6 +92,50 @@ async def call_tool_safely(session: ClientSession, name: str, arguments: dict):
 
     print(f"[tool result] {text}")
     return text
+
+
+async def save_approved_items(items: list[dict]) -> bool:
+    """Write approved items to output/action_items.json via a real MCP
+    tool call, then read the file back through the server and print it
+    to confirm the write round-tripped. Returns True on success.
+
+    This function is only ever called by agent.py AFTER a human has
+    approved each item in the CLI confirm step - the agent script
+    decides when this runs, the model never does.
+    """
+    if not items:
+        print("[tool call] skipped - no approved items to write")
+        return False
+
+    target = OUTPUT_DIR / "action_items.json"
+    content = json.dumps(items, indent=2)
+
+    async with mcp_session() as session:
+        tools = await list_tool_names(session)
+
+        write_tool = "write_file"
+        read_tool = "read_text_file"
+        if write_tool not in tools or read_tool not in tools:
+            print(
+                f"[tool result] ERROR: expected '{write_tool}' and '{read_tool}' "
+                f"in the advertised tool list above, but they weren't both found."
+            )
+            return False
+
+        write_result = await call_tool_safely(
+            session, write_tool, {"path": str(target), "content": content}
+        )
+        if write_result is None:
+            print("[output] write failed - approved items were NOT saved")
+            return False
+
+        read_back = await call_tool_safely(session, read_tool, {"path": str(target)})
+        if read_back is None:
+            print("[output] write succeeded but read-back failed - could not confirm")
+            return False
+
+        print("[output] confirmed: action_items.json written and read back successfully")
+        return True
 
 
 async def _standalone_smoke_test():

@@ -19,8 +19,7 @@ import sys
 
 from llm_client import classify_transcript
 from verify import is_eligible, eligibility_reason
-
-# TODO (Step 6): import mcp_client, wire approved items to write_file + read_text_file
+from mcp_client import save_approved_items
 
 
 def sort_items(items: list[dict], transcript: str) -> tuple[list[dict], list[dict], list[dict]]:
@@ -90,9 +89,11 @@ async def run(transcript_path: str, approve_all: bool) -> list[dict]:
 
     approved = confirm_items(eligible, approve_all)
 
-    print(f"\n[output] {len(approved)} item(s) approved (MCP write happens in Step 6)")
+    print(f"\n[output] {len(approved)} item(s) approved by human")
     for item in approved:
         print(f"  - {item['title']} (owner={item['owner']}, deadline={item['deadline']})")
+
+    await save_approved_items(approved)
 
     return approved
 
