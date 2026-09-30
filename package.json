@@ -1,0 +1,8 @@
+{
+  "name": "teamproject6-ai-agent-mcp",
+  "private": true,
+  "description": "Pins the official MCP filesystem server so mcp_client.py can launch it directly with node instead of through the npx shim.",
+  "dependencies": {
+    "@modelcontextprotocol/server-filesystem": "2026.8.31"
+  }
+}
