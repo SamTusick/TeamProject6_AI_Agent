@@ -23,7 +23,7 @@ Live meeting join, Otter integration, Jira/Google Calendar writes (planned for v
 ```
 python agent.py tests/transcripts/a_confirmed.txt
 python agent.py <your-transcript.txt> --approve-all   # skip interactive prompts
-python tests/run_tests.py                              # 4 synthetic test cases
+python tests/run_tests.py                              # 5 synthetic test cases
 ```
 
 ## Known limitations

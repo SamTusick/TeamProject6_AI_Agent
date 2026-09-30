@@ -1,0 +1,7 @@
+SYNTHETIC TEST DATA - generated for automated testing, not a real meeting.
+
+Morgan: Let's cover two things before we wrap up. Jordan, can you take the client onboarding doc?
+Jordan: Yes, I'll have the onboarding doc finished by this Thursday.
+Morgan: Perfect. And Casey, can you handle the deploy checklist?
+Casey: Sure, I will finish the deploy checklist by next Tuesday.
+Morgan: Great, both locked in.

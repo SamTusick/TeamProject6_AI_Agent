@@ -31,7 +31,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from agent import run as run_agent  # noqa: E402
 from verify import quote_found_in_transcript  # noqa: E402
 
-CASES = ["a_confirmed", "b_tentative", "c_discussed_only", "d_needs_info"]
+CASES = ["a_confirmed", "b_tentative", "c_discussed_only", "d_needs_info", "e_multiple_confirmed"]
 
 
 async def run_case(name: str) -> bool:
@@ -80,6 +80,16 @@ async def run_case(name: str) -> bool:
             print(f"  [FAIL] action_items.json read back but has no CONFIRMED item: {written}")
     else:
         checks["readback_matches"] = True
+
+    # 5. if the case specifies how many CONFIRMED items to expect, count them in the written output
+    expected_count = expected.get("expected_confirmed_count")
+    if expected_count is not None:
+        written = json.loads(OUTPUT_FILE.read_text(encoding="utf-8")) if write_happened else []
+        confirmed_count = sum(1 for i in written if i.get("classification") == "CONFIRMED")
+        checks["confirmed_count"] = confirmed_count == expected_count
+        if not checks["confirmed_count"]:
+            print(f"  [FAIL] expected {expected_count} CONFIRMED items in action_items.json, "
+                  f"got {confirmed_count}: {written}")
 
     passed = all(checks.values())
     print(f"  RESULT: {'PASS' if passed else 'FAIL'} ({checks})")
