@@ -1,0 +1,5 @@
+SYNTHETIC TEST DATA - generated for automated testing, not a real meeting.
+
+Morgan: Can someone look into renewing the vendor contract this week?
+Taylor: I might be able to do that, no promises, depends on how my week goes.
+Morgan: Okay, let's see how it goes.

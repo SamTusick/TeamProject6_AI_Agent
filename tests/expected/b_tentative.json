@@ -1,0 +1,5 @@
+{
+  "description": "A hedge ('I might be able to do that, no promises') should be classified TENTATIVE and never written, even though it names a task and an implied owner.",
+  "expected_classification": "TENTATIVE",
+  "expect_mcp_write": false
+}

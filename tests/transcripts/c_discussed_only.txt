@@ -1,0 +1,5 @@
+SYNTHETIC TEST DATA - generated for automated testing, not a real meeting.
+
+Morgan: We could switch our project management tool to something else at some point.
+Taylor: Yeah, that's an interesting idea, worth thinking about eventually.
+Morgan: Sure, let's move on to the next topic for now.

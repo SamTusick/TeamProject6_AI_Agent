@@ -1,0 +1,5 @@
+{
+  "description": "A decisive statement missing both owner and deadline should be classified NEEDS_INFO, produce a clarifying question, and never be written.",
+  "expected_classification": "NEEDS_INFO",
+  "expect_mcp_write": false
+}

@@ -1,0 +1,5 @@
+{
+  "description": "An idea that was discussed but never approved or assigned should be classified DISCUSSED_ONLY and never written.",
+  "expected_classification": "DISCUSSED_ONLY",
+  "expect_mcp_write": false
+}

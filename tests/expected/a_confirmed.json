@@ -1,0 +1,5 @@
+{
+  "description": "Clear decision with explicit owner and deadline should be CONFIRMED, approved, and written to output/action_items.json via the MCP filesystem server.",
+  "expected_classification": "CONFIRMED",
+  "expect_mcp_write": true
+}
