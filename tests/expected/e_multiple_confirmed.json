@@ -1,5 +1,6 @@
 {
   "description": "A meeting with two separately confirmed action items (different owners and deadlines) should classify both as CONFIRMED and write both to output/action_items.json, not just one.",
   "expected_classification": "CONFIRMED",
-  "expect_mcp_write": true
+  "expect_mcp_write": true,
+  "expected_confirmed_count": 2
 }
