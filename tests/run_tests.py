@@ -31,7 +31,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from agent import run as run_agent  # noqa: E402
 from verify import quote_found_in_transcript  # noqa: E402
 
-CASES = ["a_confirmed", "b_tentative", "c_discussed_only", "d_needs_info"]
+CASES = ["a_confirmed", "b_tentative", "c_discussed_only", "d_needs_info", "e_multiple_confirmed"]
 
 
 async def run_case(name: str) -> bool:
