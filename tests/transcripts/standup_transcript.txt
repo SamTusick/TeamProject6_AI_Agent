@@ -1,0 +1,90 @@
+Weekly Engineering Standup
+Date: Wednesday, October 28, 2026
+Time: 9:30 AM - 9:52 AM
+Attendees: Maria Lopez (Engineering Manager), Devon Carter, Priya Nair, Jamal Washington, Elena Petrova, Tom Nguyen
+
+[00:00:03] Maria Lopez: Morning everyone. Let's get started. We have a release candidate due Friday, so I want to make sure everyone knows exactly what they are carrying through the end of the week. Devon, why don't you kick us off.
+
+[00:00:15] Devon Carter: Sure. Yesterday I finished the migration script for the user profiles table. It ran clean on staging. Today I'm planning to start on the notification preferences endpoint, but I'm blocked on the schema. I need to know whether we are storing preferences as JSON or as separate columns.
+
+[00:00:38] Maria Lopez: Good question. Let's go with separate columns. It will make the reporting queries simpler. Devon, I'm assigning you the notification preferences endpoint, and please have a draft pull request up by end of day Thursday.
+
+[00:00:52] Devon Carter: Got it. Separate columns, draft PR by Thursday end of day.
+
+[00:00:58] Maria Lopez: Priya, you're next.
+
+[00:01:01] Priya Nair: Yesterday I was working on the search service. I got the indexing job down from forty minutes to about twelve, which is a big improvement. Today I'm going to profile the query side because we are still seeing slow responses on long search terms. No blockers right now.
+
+[00:01:24] Maria Lopez: Great work on the indexing. Priya, I'd like you to also take the action item to write up what you changed so the rest of the team can learn from it. Can you have a short doc in the wiki by next Tuesday?
+
+[00:01:38] Priya Nair: Yes, I can do that. Next Tuesday.
+
+[00:01:42] Maria Lopez: Thanks. Jamal?
+
+[00:01:45] Jamal Washington: So yesterday I mostly dealt with the login bug that customer support escalated. It turns out the session token was expiring early for users in certain time zones. I have a fix, but it needs a review. Today I'll write regression tests for it.
+
+[00:02:08] Maria Lopez: Okay. Elena, can you review Jamal's fix this morning? It's customer facing, so I'd like it merged before noon tomorrow.
+
+[00:02:17] Elena Petrova: Yes, I can take that. Jamal, send me the link after this call and I'll get it done today.
+
+[00:02:24] Jamal Washington: Will do. Sending it right after standup.
+
+[00:02:29] Maria Lopez: Perfect. Jamal, once the tests are written, please also update the support team in the escalation channel so they can close out the ticket.
+
+[00:02:38] Jamal Washington: Understood. I'll post an update once it's merged.
+
+[00:02:43] Maria Lopez: Elena, how about your update?
+
+[00:02:46] Elena Petrova: Yesterday I finished the dashboard redesign mockups and shared them with the design team. They had some feedback about the color contrast on the charts, which I think is fair. Today, besides the review for Jamal, I'll revise the mockups. I'm a little worried about the timeline for the front-end work though, because we only have one front-end developer available next sprint.
+
+[00:03:15] Maria Lopez: That's a fair concern. Tom, are you available to help on the dashboard next sprint?
+
+[00:03:21] Tom Nguyen: I could, but I'm currently the only person who knows the billing integration. If I split my time, the billing work will slip.
+
+[00:03:32] Maria Lopez: Let's do this. Tom, you will give Elena ten hours next sprint on the dashboard, and in exchange Devon will shadow you on billing this Thursday so we have a second person who understands it. Does that work for both of you?
+
+[00:03:48] Tom Nguyen: That works for me, as long as Devon can make time on Thursday.
+
+[00:03:53] Devon Carter: Thursday afternoon is fine. I'll move things around.
+
+[00:03:58] Elena Petrova: Thank you, that helps a lot. I'll send Tom a list of the components I need by Monday.
+
+[00:04:05] Maria Lopez: Great. Tom, you haven't given your update yet.
+
+[00:04:09] Tom Nguyen: Right. Yesterday I fixed the invoice rounding issue. There was a bug where totals were off by a cent in some currencies. Today I'm going to continue on the refund flow. One risk is that the payment provider is changing their API on November 9th, so we need to test against their sandbox before then.
+
+[00:04:36] Maria Lopez: That is an important date. Tom, please add a task to test against the new sandbox and have it done by November 4th. Priya, can you pair with Tom for a couple of hours on that, since you did the API work for the search service?
+
+[00:04:52] Priya Nair: Sure, I can pair with him. Tom, let's schedule time on Monday.
+
+[00:04:58] Tom Nguyen: Monday works. I'll send an invite.
+
+[00:05:02] Maria Lopez: Okay. Let me recap the action items so we are all on the same page.
+
+[00:05:08] Maria Lopez: One. Devon builds the notification preferences endpoint with separate columns and has a draft PR by Thursday end of day. Devon also shadows Tom on billing Thursday afternoon.
+
+[00:05:22] Maria Lopez: Two. Priya writes up the indexing improvements in the wiki by next Tuesday, and pairs with Tom on Monday for the sandbox testing.
+
+[00:05:33] Maria Lopez: Three. Elena reviews Jamal's login fix today so it can be merged before noon tomorrow, then revises the dashboard mockups for color contrast, and sends Tom her component list by Monday.
+
+[00:05:48] Maria Lopez: Four. Jamal sends Elena the pull request link right after this meeting, writes the regression tests, and updates support once the fix is merged.
+
+[00:06:00] Maria Lopez: Five. Tom gives Elena ten hours next sprint, and tests against the payment provider's new sandbox by November 4th.
+
+[00:06:11] Elena Petrova: That matches my notes.
+
+[00:06:14] Devon Carter: Same here.
+
+[00:06:17] Maria Lopez: Any other blockers or questions before we wrap up?
+
+[00:06:22] Jamal Washington: One quick thing. Is the release candidate still on for Friday, or does the login fix change that?
+
+[00:06:30] Maria Lopez: Still on for Friday, as long as the login fix is merged by tomorrow. If anything slips, flag it in the team channel right away and we will adjust.
+
+[00:06:41] Jamal Washington: Sounds good.
+
+[00:06:44] Maria Lopez: Alright, thanks everyone. Let's have a good day, and shout if you need anything.
+
+[00:06:49] All: Thanks. Bye.
+
+[Meeting ended]

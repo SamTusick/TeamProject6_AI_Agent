@@ -27,6 +27,9 @@ MODEL_NAME = os.getenv("MODEL_NAME", "qwen3")
 client = AsyncOpenAI(
     base_url=os.getenv("NRP_BASE_URL"),
     api_key=os.getenv("NRP_API_KEY"),
+    # SDK default is 600s x 3 attempts, which looks like a silent hang.
+    timeout=float(os.getenv("NRP_TIMEOUT_S", "300")),
+    max_retries=0,
 )
 
 # The persona + core instruction. Every rule here exists to push the
@@ -109,6 +112,7 @@ def parse_classification_response(raw_text: str) -> list[dict]:
     items = data.get("items") if isinstance(data, dict) else None
     if not isinstance(items, list):
         print("[reason] ERROR: JSON response missing an 'items' list")
+        print(f"[reason] raw model output (first 500 chars): {raw_text[:500]!r}")
         return []
 
     required_fields = {"title", "owner", "deadline", "classification", "reasoning", "quote"}
@@ -130,7 +134,16 @@ async def classify_transcript(transcript_text: str) -> list[dict]:
         model=MODEL_NAME,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": transcript_text},
+            {
+                "role": "user",
+                "content": (
+                    "Extract candidate action items from the transcript below. "
+                    'Respond with ONLY a JSON object of the form {"items": [...]} '
+                    "using the schema from your instructions. Do not summarize the "
+                    "meeting or add any other keys.\n\n"
+                    f"TRANSCRIPT:\n{transcript_text}"
+                ),
+            },
         ],
         response_format={"type": "json_object"},
     )

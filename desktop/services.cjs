@@ -71,7 +71,7 @@ function runAnalysis(root, transcript) {
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill();
-    }, 180_000);
+    }, 300_000);
     child.stdout.setEncoding("utf8");
     child.stdout.on("data", (chunk) => {
       output += chunk;
