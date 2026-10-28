@@ -2,3 +2,5 @@ torch>=2.6,<3
 soundfile>=0.13,<1
 jiwer>=4,<5
 av>=16,<17
+transformers>=4.44,<6
+accelerate>=1,<2

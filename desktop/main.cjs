@@ -246,8 +246,8 @@ function registerHandlers() {
       if (!meeting.audio) throw new Error("This meeting has no recording.");
       if (
         !(await consent(
-          "Try experimental local transcription?",
-          "Audio stays on this device and uses our own trained checkpoint. No speech API key is needed. This early model is not accurate and may return no words. A nonempty result replaces the current transcript and resets review decisions; a failure leaves both unchanged.",
+          "Transcribe locally with Whisper?",
+          "Audio stays on this device and is transcribed by the open-source Whisper base model. No speech API key is needed; the first run downloads the model (about 150 MB) and can take a few minutes. Accuracy is moderate, so review the text. A nonempty result replaces the current transcript and resets review decisions; a failure leaves both unchanged.",
         ))
       )
         return null;

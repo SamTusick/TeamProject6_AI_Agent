@@ -44,14 +44,29 @@ class DesktopSpeechTests(unittest.TestCase):
     def test_successful_predictions_are_joined(self):
         self.write_webm(seconds=16)
         predictions = iter(["send the report", "by friday"])
-        result = process({"audioPath": str(self.audio), "checkpoint": str(self.checkpoint)},
+        result = process({"audioPath": str(self.audio), "backend": "checkpoint", "checkpoint": str(self.checkpoint)},
                          model_loader=lambda _: object(), predict=lambda *_: next(predictions))
         self.assertEqual(result, {"text": "send the report by friday"})
+
+    def test_whisper_backend_needs_no_checkpoint_and_uses_30s_chunks(self):
+        self.write_webm(seconds=16)
+        sizes = []
+        result = process({"audioPath": str(self.audio), "backend": "whisper"},
+                         model_loader=lambda _: object(),
+                         predict=lambda wave, _: sizes.append(len(wave)) or "hello")
+        self.assertEqual(result, {"text": "hello"})
+        self.assertEqual(sizes, [256000])
+
+    def test_checkpoint_backend_still_requires_checkpoint(self):
+        self.write_webm()
+        with self.assertRaisesRegex(ValueError, "checkpoint is missing"):
+            process({"audioPath": str(self.audio), "backend": "checkpoint",
+                     "checkpoint": str(self.checkpoint) + ".gone"})
 
     def test_blank_output_is_explicit_failure(self):
         self.write_webm()
         with self.assertRaisesRegex(ValueError, "returned no words"):
-            process({"audioPath": str(self.audio), "checkpoint": str(self.checkpoint)},
+            process({"audioPath": str(self.audio), "backend": "checkpoint", "checkpoint": str(self.checkpoint)},
                     model_loader=lambda _: object(), predict=lambda *_: "")
 
     def test_empty_recording_rejected_before_loading(self):

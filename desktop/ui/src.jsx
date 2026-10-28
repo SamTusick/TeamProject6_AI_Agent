@@ -525,9 +525,9 @@ function App() {
                     )}
                     <button
                       disabled={locked || editing}
-                      title="Our experimental local speech model; no API key required"
+                      title="Whisper base running on this device; no API key required"
                       onClick={() =>
-                        task("Running experimental local transcription", async () => {
+                        task("Running local Whisper transcription", async () => {
                           const result = await api.transcribe(meeting.id);
                           if (result) {
                             upsert(result);
@@ -536,7 +536,7 @@ function App() {
                         })
                       }
                     >
-                      <AudioLines size={16} /> Transcribe locally (experimental)
+                      <AudioLines size={16} /> Transcribe locally (Whisper)
                     </button>
                     <button
                       disabled={locked || editing || !settings?.hasWisprKey}
@@ -781,7 +781,7 @@ function App() {
         )}
         <footer className="main-footer">
           <span>TEAM6 / DESKTOP PREVIEW</span>
-          <span>Local speech / Experimental model</span>
+          <span>Local speech / Whisper base</span>
         </footer>
       </main>
 

@@ -250,10 +250,10 @@ async function main() {
         return { response: 1 };
       };
     });
-    await page.getByRole("button", { name: "Transcribe locally (experimental)", exact: true }).click();
+    await page.getByRole("button", { name: "Transcribe locally (Whisper)", exact: true }).click();
     await expect(page.getByRole("alert")).toContainText("returned no words", { timeout: 180000 });
     assert.deepEqual(store.read(recordedMeeting.id), beforeTranscription);
-    await expect(page.getByRole("button", { name: "Transcribe locally (experimental)", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Transcribe locally (Whisper)", exact: true })).toBeEnabled();
     await application.evaluate(({ dialog }) => {
       dialog.showMessageBox = async () => ({ response: 1 });
     });

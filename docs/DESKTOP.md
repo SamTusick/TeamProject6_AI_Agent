@@ -77,25 +77,27 @@ Ensure important names are stated or review/correct the transcript before analys
 
 ### Speech transcription
 
-An experimental, public-data training pipeline for our own randomly initialized
-speech model is documented in [SPEECH_TRAINING.md](SPEECH_TRAINING.md). It uses no
-pretrained speech weights. The initial checkpoint is not accurate enough for
-useful transcription, but it is connected for local experimentation.
+Local transcription uses the open-source Whisper base model
+(`openai/whisper-base.en` by default) through Hugging Face `transformers`.
+Audio stays on-device and no speech API key is needed. Install
+`requirements-speech.txt` in `.venv`; the model (about 150 MB) downloads on first
+use, so that first run needs internet. Set `WHISPER_MODEL=openai/whisper-base` for
+non-English audio. Choose **Transcribe locally (Whisper)** on a saved recording
+and confirm local processing. The optional **Transcribe with Wispr Flow** button is
+the only cloud transcription path: save a Wispr Flow API key under
+**Connections**, and the recording is uploaded only after you confirm. Wispr Flow
+tidies speech, so the transcript is not word-for-word.
 
-Install `requirements-speech.txt` in `.venv` and ensure the trained checkpoint
-exists at `.models/speech/smoke-run/checkpoint.pt`. Choose **Transcribe locally
-(experimental)** on a saved recording and confirm local processing. Audio stays
-on-device; no speech API key is required. The optional **Transcribe with Wispr
-Flow** button is the only cloud transcription path: save a Wispr Flow API key
-under **Connections**, and the recording is uploaded only after you confirm.
-Wispr Flow tidies speech, so the transcript is not word-for-word.
+The worker decodes WebM/Opus into mono 16 kHz audio and runs Whisper on 30-second
+chunks (chunk edges can split a word). It has a 10-minute timeout. A nonempty
+result replaces the meeting transcript and invalidates prior decisions. Empty
+predictions or errors preserve the recording, transcript, and decisions. Whisper
+base is only moderately accurate, so review the text. Restart Electron after
+updating the code; reloading only the renderer does not update the backend.
 
-The worker decodes WebM/Opus into mono 16 kHz audio and runs our checkpoint on
-15-second chunks. It has a 10-minute timeout. A nonempty result replaces the
-meeting transcript and invalidates prior decisions. Empty predictions or errors
-preserve the recording, transcript, and decisions. The current checkpoint
-normally returns no words and displays a training warning. Restart Electron
-after updating the code; reloading only the renderer does not update the backend.
+Our own from-scratch model ([SPEECH_TRAINING.md](SPEECH_TRAINING.md)) is still in
+the repo. The worker uses it when a request sets `"backend": "checkpoint"`, but
+the app UI no longer exposes it.
 
 ## Data and Security
 

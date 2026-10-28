@@ -121,7 +121,8 @@ function runLocalTranscription(root, audioPath, options = {}) {
   const exists = options.exists || fs.existsSync;
   if (!exists(python))
     return Promise.reject(new Error("Project .venv is missing. Install the Python requirements first."));
-  if (!exists(checkpoint))
+  const backend = options.backend || "whisper";
+  if (backend === "checkpoint" && !exists(checkpoint))
     return Promise.reject(new Error("Our local speech checkpoint is missing. Train the model before transcribing."));
   return new Promise((resolve, reject) => {
     const child = (options.spawn || spawn)(python, ["-X", "utf8", "-m", "speech.desktop_worker"], {
@@ -157,7 +158,7 @@ function runLocalTranscription(root, audioPath, options = {}) {
         if (code !== 0 || result.error)
           throw new Error(result.error || "Local transcription failed. Install requirements-speech.txt and retry.");
         if (typeof result.text !== "string" || !result.text.trim())
-          throw new Error("Our experimental model returned no words. Your recording and transcript are unchanged; the model needs more training.");
+          throw new Error("The local speech model returned no words. Your recording and transcript are unchanged.");
         resolve(text(result.text, "Transcription"));
       } catch (error) {
         reject(new Error(error instanceof SyntaxError
@@ -165,7 +166,7 @@ function runLocalTranscription(root, audioPath, options = {}) {
           : error.message));
       }
     });
-    child.stdin.end(JSON.stringify({ audioPath, checkpoint }));
+    child.stdin.end(JSON.stringify({ audioPath, checkpoint, backend }));
   });
 }
 

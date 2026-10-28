@@ -19,6 +19,7 @@ function localWorker(response, code = 0) {
       child.stdin.on("finish", () => {
         const request = JSON.parse(input);
         assert.equal(request.audioPath, "meeting.webm");
+        assert.equal(request.backend, "whisper");
         assert.ok(request.checkpoint.endsWith("checkpoint.pt"));
         assert.equal(request.key, undefined);
         child.stdout.write(response);
@@ -29,7 +30,7 @@ function localWorker(response, code = 0) {
   };
 }
 
-test("local transcription runs our checkpoint without credentials", async () => {
+test("local transcription runs Whisper without credentials", async () => {
   assert.equal(await runLocalTranscription("project", "meeting.webm", localWorker(JSON.stringify({ text: "send the report" }))), "send the report");
 });
 
@@ -38,7 +39,7 @@ test("local transcription rejects blank, malformed and failed worker responses",
   await assert.rejects(runLocalTranscription("project", "meeting.webm", localWorker("not json")), /could not return a result/);
   await assert.rejects(runLocalTranscription("project", "meeting.webm", localWorker('{"error":"Invalid audio"}', 1)), /Invalid audio/);
   await assert.rejects(runLocalTranscription("project", "meeting.webm", { exists: () => false }), /venv is missing/);
-  await assert.rejects(runLocalTranscription("project", "meeting.webm", { exists: (name) => !name.endsWith("checkpoint.pt") }), /checkpoint is missing/);
+  await assert.rejects(runLocalTranscription("project", "meeting.webm", { backend: "checkpoint", exists: (name) => !name.endsWith("checkpoint.pt") }), /checkpoint is missing/);
 });
 
 test("Wispr Flow sends base64 WAV with bearer auth and returns text", async () => {
