@@ -162,6 +162,44 @@ class ResolverTests(unittest.TestCase):
         self.assertIn("line 3", search_transcript(TRANSCRIPT, "goes live Thursday"))
         self.assertEqual(search_transcript(TRANSCRIPT, "zzz"), "no matching lines")
 
+    def test_memory_hint_leads_to_verified_transcript_evidence(self):
+        """A full ReAct chain: search_memory first (a hint, not evidence), then
+        search_transcript to actually verify it, then finish. No existing test
+        chains two different action types before a successful finish, and this
+        is exactly the 'memory is a hint for where to look' design this agent
+        claims to implement."""
+        self.memory.remember(
+            [{
+                "title": "Publish updated pricing page",
+                "owner": "Taylor",
+                "deadline": "Thursday",
+                "quote": "q",
+            }],
+            meeting="old.txt",
+        )
+        llm = scripted(
+            {"thought": "check memory for a lead", "action": "search_memory", "input": "pricing page"},
+            {
+                "thought": "memory points to Taylor/Thursday, verify in this transcript",
+                "action": "search_transcript",
+                "input": "Taylor pricing page Thursday",
+            },
+            {
+                "thought": "found verbatim in this transcript",
+                "action": "finish",
+                "input": {
+                    "owner": "Taylor",
+                    "owner_quote": "Taylor, you own the pricing page and it goes live by Thursday.",
+                    "deadline": "Thursday",
+                    "deadline_quote": "Taylor, you own the pricing page and it goes live by Thursday.",
+                },
+            },
+        )
+        item = run(resolve_item(needs_info_item(), TRANSCRIPT, self.memory, llm))
+        self.assertEqual(item["classification"], "CONFIRMED")
+        self.assertEqual((item["owner"], item["deadline"]), ("Taylor", "Thursday"))
+        self.assertEqual(len(llm.seen), 3)  
+
 
 class MemoryTests(unittest.TestCase):
     def setUp(self):
