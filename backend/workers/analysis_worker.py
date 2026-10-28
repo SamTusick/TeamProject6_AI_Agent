@@ -55,6 +55,10 @@ def main() -> None:
         with contextlib.redirect_stdout(sys.stderr):
             result = asyncio.run(process(request))
         print(json.dumps(result))
+    except RuntimeError as error:
+        print(json.dumps({"error": "The model servers did not respond in time. Your transcript is saved; try Analyze again in a minute.",
+                          "type": type(error).__name__}))
+        sys.exit(1)
     except Exception as error:
         print(json.dumps({"error": "Analysis failed. Check NRP settings, network access, and model availability.",
                           "type": type(error).__name__}))

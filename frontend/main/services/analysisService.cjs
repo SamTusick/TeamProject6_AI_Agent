@@ -16,7 +16,7 @@ async function runAnalysis(root, transcript, options = {}) {
     module: "backend.workers.analysis_worker",
     request: { transcript },
     messages,
-    timeoutMs: 180_000,
+    timeoutMs: 300_000,
     maxOutput: 2_000_000,
     spawn: options.spawn,
   });

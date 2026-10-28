@@ -7,7 +7,7 @@ pipeline - not the model - controls when anything gets written to disk.
 
 import json
 
-from backend.core.llm_client import MODEL_NAME, client
+from backend.core.llm_client import MODEL_NAME, complete_json
 
 # Every rule here pushes the model toward under-classifying rather than
 # over-claiming CONFIRMED: a missed action item is noticed by a human later,
@@ -106,12 +106,10 @@ def parse_classification_response(raw_text: str) -> list[dict]:
 async def classify_transcript(transcript_text: str) -> list[dict]:
     """Send a transcript to the model and return parsed candidate items."""
     print(f"[reason] sending transcript to model='{MODEL_NAME}' for classification")
-    response = await client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
+    raw_text = await complete_json(
+        [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": transcript_text},
-        ],
-        response_format={"type": "json_object"},
+        ]
     )
-    return parse_classification_response(response.choices[0].message.content)
+    return parse_classification_response(raw_text)
