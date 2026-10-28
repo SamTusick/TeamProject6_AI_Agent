@@ -1,0 +1,5 @@
+{
+  "description": "A decision whose owner and deadline are only stated later in the transcript: the Extractor may flag NEEDS_INFO, the Resolver agent should find the evidence, and the resolved item must reach a write. If the Extractor already returns CONFIRMED the handoff is simply not needed.",
+  "expected_classification": "CONFIRMED",
+  "expect_mcp_write": true
+}
