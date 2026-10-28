@@ -1,0 +1,48 @@
+.recording-band {
+  display: grid;
+  grid-template-columns: auto minmax(80px, 1fr) auto;
+  gap: 12px 24px;
+  padding: 20px var(--page-pad);
+  background: var(--color-primary-soft);
+  border-bottom: 1px solid var(--color-primary-border);
+  align-items: center;
+}
+
+.recording-band > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.recording-band strong {
+  font-size: 13px;
+}
+
+.recording-band canvas {
+  width: 100%;
+  height: 56px;
+}
+
+.recording-band small {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  color: var(--color-text-soft);
+}
+
+.recording-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--color-danger-text);
+  border-radius: 50%;
+}
+
+.timer {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.stop {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}

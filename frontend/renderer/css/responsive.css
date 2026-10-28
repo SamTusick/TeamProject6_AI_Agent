@@ -1,0 +1,126 @@
+@media (max-width: 1050px) {
+  .app-shell {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .transcript-pane {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .transcript {
+    min-height: 180px;
+    height: 220px;
+  }
+
+  .metrics > div {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+
+  .meeting-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 15px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: relative;
+    height: auto;
+    padding: 14px 18px;
+  }
+
+  .brand {
+    margin: 0 0 15px;
+  }
+
+  .new-meeting {
+    margin-bottom: 12px;
+  }
+
+  .search {
+    margin-bottom: 12px;
+  }
+
+  .meeting-list {
+    max-height: 145px;
+  }
+
+  .sidebar-footer {
+    margin-top: 10px;
+    padding-top: 9px;
+  }
+
+  .topbar {
+    padding: 0 18px;
+    min-height: 48px;
+  }
+
+  .privacy {
+    display: none;
+  }
+
+  .meeting-heading,
+  .metrics {
+    padding: 20px;
+  }
+
+  .transcript-pane,
+  .review-pane {
+    padding: 20px;
+  }
+
+  .metrics span {
+    font-size: 10px;
+  }
+
+  .metrics > div {
+    padding-left: 10px;
+  }
+
+  .metrics strong {
+    font-size: 22px;
+  }
+
+  .empty-workspace {
+    min-height: 350px;
+  }
+
+  .recording-band {
+    grid-template-columns: 1fr auto;
+    padding: 16px;
+    gap: 10px;
+  }
+
+  .recording-band canvas {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+
+  .recording-band small {
+    grid-row: 3;
+  }
+
+  .recording-band > div {
+    gap: 6px;
+  }
+
+  .recording-band .stop {
+    font-size: 11px;
+  }
+
+  .item-meta {
+    gap: 5px;
+  }
+}

@@ -149,4 +149,4 @@ class MeetingStore {
   }
 }
 
-module.exports = { MeetingStore, atomicJson, canApprove, text, MAX_AUDIO };
+module.exports = { MeetingStore, canApprove, text, MAX_AUDIO };

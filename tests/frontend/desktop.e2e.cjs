@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const assert = require("node:assert/strict");
-const { MeetingStore } = require("../desktop/store.cjs");
+const { MeetingStore } = require("../../frontend/main/models/meetingStore.cjs");
 
 async function main() {
   const data = fs.mkdtempSync(path.join(os.tmpdir(), "team6-e2e-"));
@@ -105,31 +105,6 @@ async function main() {
     });
     console.log(
       "PASS: isolated renderer, evidence enforcement, and persisted approvals",
-    );
-
-    await page
-      .getByRole("button", { name: "Connections", exact: true })
-      .click();
-    await page
-      .getByLabel("Wispr Flow API key", { exact: true })
-      .fill("test-only-not-a-real-key");
-    await page
-      .getByRole("button", { name: "Save Wispr Flow", exact: true })
-      .click();
-    await expect(
-      page.getByText("Wispr Flow connection saved.", { exact: true }),
-    ).toBeVisible();
-    const settings = await page.evaluate(() => window.meetings.settings());
-    assert.equal(settings.hasWisprKey, true);
-    assert.equal("key" in settings, false);
-    assert.equal(
-      fs
-        .readFileSync(path.join(data, "speech-settings.json"), "utf8")
-        .includes("test-only-not-a-real-key"),
-      false,
-    );
-    console.log(
-      "PASS: settings store encrypted credentials and never return saved keys",
     );
 
     await application.evaluate(({ dialog }, directory) => {
@@ -238,26 +213,34 @@ async function main() {
       "PASS: synthetic microphone/system recording, visible audio levels, saved WebM playback",
     );
 
-    await page.evaluate(() => window.meetings.saveWisprSettings({ clearKey: true }));
-    assert.equal((await page.evaluate(() => window.meetings.settings())).hasWisprKey, false);
     const recordedMeeting = store.list().find((value) => value.title === "Synthetic audio test");
     await page.evaluate(({ id }) => window.meetings.update(id, "Synthetic audio test", "Keep this transcript."), recordedMeeting);
     const beforeTranscription = store.read(recordedMeeting.id);
     await page.reload();
     await application.evaluate(({ dialog }) => {
       dialog.showMessageBox = async (_window, options) => {
-        if (!options.message.includes("local transcription")) throw new Error("Expected local transcription consent");
+        if (!options.message.includes("locally with Whisper")) throw new Error("Expected local transcription consent");
         return { response: 1 };
       };
     });
     await page.getByRole("button", { name: "Transcribe locally (Whisper)", exact: true }).click();
-    await expect(page.getByRole("alert")).toContainText("returned no words", { timeout: 180000 });
-    assert.deepEqual(store.read(recordedMeeting.id), beforeTranscription);
+    // Whisper may return text or nothing for synthetic audio; both outcomes must leave the app consistent.
+    const alert = page.getByRole("alert");
+    const ready = page.getByText("Transcript ready for review.", { exact: true });
+    await expect(alert.or(ready)).toBeVisible({ timeout: 180000 });
+    if (await alert.isVisible()) {
+      await expect(alert).toContainText("returned no words");
+      assert.deepEqual(store.read(recordedMeeting.id), beforeTranscription);
+    } else {
+      const after = store.read(recordedMeeting.id);
+      assert.ok(after.transcript.trim() && after.transcript !== beforeTranscription.transcript);
+      assert.deepEqual(after.items, []);
+    }
     await expect(page.getByRole("button", { name: "Transcribe locally (Whisper)", exact: true })).toBeEnabled();
     await application.evaluate(({ dialog }) => {
       dialog.showMessageBox = async () => ({ response: 1 });
     });
-    console.log("PASS: real local checkpoint runs without a speech key; blank output preserves transcript and releases busy state");
+    console.log("PASS: local Whisper runs without a speech key; the result or a blank-output error leaves the app consistent and releases busy state");
 
     await application.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].setSize(520, 820),

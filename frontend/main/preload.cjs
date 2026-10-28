@@ -17,13 +17,9 @@ contextBridge.exposeInMainWorld("meetings", {
     invoke("meetings:decide", id, itemId, decision),
   export: (id) => invoke("meetings:export", id),
   delete: (id) => invoke("meetings:delete", id),
-  settings: () => invoke("settings:get"),
-  saveWisprSettings: (settings) => invoke("settings:saveWispr", settings),
   beginRecording: (title) => invoke("recording:begin", title),
   appendRecording: (id, chunk) => invoke("recording:append", id, chunk),
   finishRecording: (id) => invoke("recording:finish", id),
   audio: (id) => invoke("recording:audio", id),
   transcribe: (id) => invoke("recording:transcribe", id),
-  transcribeWispr: (id, chunks) =>
-    invoke("recording:transcribeWispr", id, chunks),
 });

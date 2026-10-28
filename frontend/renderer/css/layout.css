@@ -1,0 +1,92 @@
+.app-shell {
+  display: grid;
+  grid-template-columns: 245px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background-image: linear-gradient(#fff8, transparent 300px);
+}
+
+.topbar {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 var(--page-pad);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 10px;
+  color: var(--color-muted);
+}
+
+.topbar b {
+  color: var(--color-text-soft);
+  font-weight: 500;
+}
+
+.privacy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-soft);
+}
+
+.messages:not(:empty) {
+  padding: 16px 28px 0;
+}
+
+.meeting-heading {
+  padding: var(--page-pad) var(--page-pad) 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(300px, 1.1fr);
+  flex: 1;
+}
+
+.pane-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 36px;
+  margin-bottom: 18px;
+}
+
+.pane-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pane-heading h2 svg {
+  color: var(--color-primary);
+}
+
+.main-footer {
+  padding: 17px 28px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--color-muted);
+  font-size: 9px;
+}

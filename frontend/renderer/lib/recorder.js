@@ -102,11 +102,14 @@ export async function startRecorder({
       );
     }
     const samples = new Uint8Array(analyser.frequencyBinCount);
+    const barColor = getComputedStyle(canvas)
+      .getPropertyValue("--color-primary")
+      .trim();
     const paint = () => {
       analyser.getByteFrequencyData(samples);
       const drawing = canvas.getContext("2d");
       drawing.clearRect(0, 0, canvas.width, canvas.height);
-      drawing.fillStyle = "#23775f";
+      drawing.fillStyle = barColor;
       for (let index = 0; index < 64; index++) {
         const height = Math.max(2, (samples[index] / 255) * canvas.height);
         drawing.fillRect(

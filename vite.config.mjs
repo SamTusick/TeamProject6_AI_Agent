@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import { resolve } from "node:path";
 
 export default defineConfig({
-  root: "desktop/ui",
+  root: "frontend/renderer",
   base: "./",
-  build: { outDir: resolve("desktop-dist"), emptyOutDir: true },
+  build: { outDir: resolve("frontend/dist"), emptyOutDir: true },
 });

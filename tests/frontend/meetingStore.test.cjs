@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { MeetingStore, canApprove } = require("../desktop/store.cjs");
+const { MeetingStore, canApprove } = require("../../frontend/main/models/meetingStore.cjs");
 
 const transcript = "Taylor: I will send the report by Friday.";
 const item = {

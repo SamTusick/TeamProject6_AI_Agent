@@ -83,10 +83,7 @@ Audio stays on-device and no speech API key is needed. Install
 `requirements-speech.txt` in `.venv`; the model (about 150 MB) downloads on first
 use, so that first run needs internet. Set `WHISPER_MODEL=openai/whisper-base` for
 non-English audio. Choose **Transcribe locally (Whisper)** on a saved recording
-and confirm local processing. The optional **Transcribe with Wispr Flow** button is
-the only cloud transcription path: save a Wispr Flow API key under
-**Connections**, and the recording is uploaded only after you confirm. Wispr Flow
-tidies speech, so the transcript is not word-for-word.
+and confirm local processing. No recording is ever uploaded for transcription.
 
 The worker decodes WebM/Opus into mono 16 kHz audio and runs Whisper on 30-second
 chunks (chunk edges can split a word). It has a 10-minute timeout. A nonempty
@@ -99,6 +96,32 @@ Our own from-scratch model ([SPEECH_TRAINING.md](SPEECH_TRAINING.md)) is still i
 the repo. The worker uses it when a request sets `"backend": "checkpoint"`, but
 the app UI no longer exposes it.
 
+## Project layout
+
+```text
+frontend/
+  main/                      Electron main process (CommonJS)
+    main.cjs                 app lifecycle, window, protocol, capture permissions
+    preload.cjs              contextBridge API exposed as window.meetings
+    ipc.cjs                  sender-trust check, IPC handler wrapper, consent dialog
+    activity.cjs             active recording and per-meeting busy tracking
+    controllers/             IPC wiring only (meetings:*, recording:*)
+    services/                Python worker runner, analysis and transcription services
+    models/meetingStore.cjs  meeting persistence and approval rules
+  renderer/                  React UI built by Vite
+    main.jsx, App.jsx        entry point and composition
+    components/              presentational components
+    hooks/                   state and IPC orchestration
+    lib/                     recorder, API handle, formatting helpers
+    css/                     design tokens and per-area stylesheets
+  dist/                      Vite build output (git-ignored)
+```
+
+The main process spawns the Python workers from the repository root with
+`.venv\Scripts\python.exe -X utf8 -m <module>`: `backend.workers.analysis_worker`
+for action analysis and `backend.workers.transcription_worker` for local
+transcription. Both exchange one JSON request on stdin and one JSON reply on stdout.
+
 ## Data and Security
 
 - Meetings are stored separately in Electron's `userData/meetings` directory,
@@ -107,9 +130,8 @@ the app UI no longer exposes it.
 - Meeting files are not encrypted at rest. Protect the Windows user account and
   device. Delete a meeting to remove its local transcript, audio, and decisions;
   exported copies and provider-retained data are not deleted by that action.
-- Speech keys are encrypted using Electron `safeStorage` (Windows OS protection).
-  Saved keys are never returned to the renderer. Changing the speech endpoint
-  clears the old key unless a new one is entered.
+- The app stores no API keys. Action analysis uses the NRP settings from the
+  project `.env`, which is git-ignored.
 - The renderer loads packaged local assets through a restricted custom scheme,
   with sandboxing and context isolation enabled and Node integration disabled.
   IPC exposes specific operations, validates the sender, and restricts file paths.
@@ -124,12 +146,17 @@ the app UI no longer exposes it.
 
 ```powershell
 npm test
-& .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_desktop_worker.py -v
+& .\.venv\Scripts\python.exe -m unittest discover -s tests/backend -t . -v
 npm run test:desktop
 ```
 
+JavaScript tests live in `tests/frontend/` and Python tests in `tests/backend/`.
+`npm test` runs `tests/frontend/*.test.cjs`; `npm run test:desktop` builds the UI
+and runs `tests/frontend/desktop.e2e.cjs`.
+
 - Node tests cover approval enforcement, persistence, transcript invalidation,
-  path validation, deletion, and the speech request/response contract.
+  path validation, deletion, and the analysis and speech worker request/response
+  contracts.
 - Python tests cover independent quote verification and eligibility.
 - Playwright launches the real Electron binary with isolated temporary data.
   It checks credential encryption, renderer isolation, review persistence,
@@ -139,7 +166,7 @@ npm run test:desktop
 - Screenshots are generated in ignored `test-artifacts/`.
 - A live service-bridge check has succeeded using a synthetic sentence and the
   configured NRP model. The local speech flow is tested with generated WebM,
-  the actual checkpoint, no saved speech key, and preservation on blank output.
+  the actual local model, and preservation on blank output.
   This does not establish useful recognition accuracy or real-call performance.
 
 The existing live CLI suite remains `python tests/run_tests.py`. It is separate
