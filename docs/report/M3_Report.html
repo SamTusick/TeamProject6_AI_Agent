@@ -1,0 +1,156 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Team 6 – M3 Report</title>
+<style>
+ @page { size: Letter; margin: 0.7in; }
+ body { font-family: Segoe UI, Arial, sans-serif; font-size: 10.5pt; line-height: 1.38; color: #1f2937; }
+ h1 { font-size: 21pt; margin: 0 0 2pt; color: #1e3a8a; } h2 { font-size: 14pt; border-bottom: 2px solid #1e3a8a; padding-bottom: 2pt; margin-top: 18pt; color: #1e3a8a; page-break-after: avoid; }
+ h3 { font-size: 11.5pt; margin: 10pt 0 3pt; }
+ table { border-collapse: collapse; width: 100%; margin: 6pt 0; font-size: 9.2pt; page-break-inside: auto; }
+ th, td { border: 1px solid #c4cad4; padding: 3pt 5pt; vertical-align: top; text-align: left; } th { background: #e8eefb; }
+ tr { page-break-inside: avoid; }
+ .note { background: #fff7e0; border-left: 4px solid #e0a800; padding: 5pt 8pt; margin: 6pt 0; font-size: 9.6pt; }
+ .small { font-size: 9pt; color: #4b5563; } code { font-size: 9pt; background: #f1f3f6; padding: 0 2px; }
+ pre { font-size: 8.6pt; background: #f1f3f6; padding: 6pt 8pt; border-radius: 4px; line-height: 1.3; }
+ svg { width: 100%; height: auto; border: 1px solid #c4cad4; }
+</style></head><body>
+
+<h1>Team 6 – M3 Report: Multi-Agent Meeting Action-Item System</h1>
+<div class="small">Repository: SamTusick/TeamProject6_AI_Agent &nbsp;|&nbsp; Extractor agent + Resolver agent (ReAct) + persistent memory, with code-level guardrails and human approval</div>
+
+<div class="note"><b>Honesty statement.</b> Cost figures, prices and conversion rates below are <b>assumptions</b> we have not yet validated with vendors or users; each is labeled and can be swapped in the formulas. The system is a working prototype, not a polished product. Known failures are listed in §7.</div>
+
+<h2>1. What the system does</h2>
+<p>Small teams lose decisions after meetings because nobody reliably separates a real commitment from a hedge or an idea. Our system reads a meeting transcript (imported, typed, or produced on-device from a recording with the open-source Whisper model in our desktop app) and produces <b>human-approved action items</b>, each tied to a verbatim quote. Approved items are written through the official MCP Filesystem server and also stored in a memory layer for later meetings.</p>
+
+<h2>2. Updated architecture</h2>
+<svg viewBox="0 0 980 520" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial" font-size="12">
+ <defs><marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#333"/></marker></defs>
+ <rect x="10" y="20" width="140" height="56" rx="8" fill="#eef" stroke="#447"/><text x="80" y="44" text-anchor="middle">Audio / transcript</text><text x="80" y="62" text-anchor="middle" font-size="10">(local Whisper or typed)</text>
+ <rect x="190" y="20" width="190" height="56" rx="8" fill="#e8eefb" stroke="#1e3a8a"/><text x="285" y="44" text-anchor="middle" font-weight="bold">Agent 1: Extractor</text><text x="285" y="62" text-anchor="middle" font-size="10">LLM classifies items + quote</text>
+ <line x1="150" y1="48" x2="190" y2="48" stroke="#333" marker-end="url(#a)"/>
+ <rect x="440" y="20" width="230" height="56" rx="8" fill="#fde9d9" stroke="#b55a1a"/><text x="555" y="42" text-anchor="middle" font-weight="bold">Handoff (explicit)</text><text x="555" y="58" text-anchor="middle" font-size="10">trigger: classification == NEEDS_INFO</text>
+ <line x1="380" y1="48" x2="440" y2="48" stroke="#333" marker-end="url(#a)"/>
+ <rect x="720" y="10" width="250" height="76" rx="8" fill="#e8eefb" stroke="#1e3a8a"/><text x="845" y="32" text-anchor="middle" font-weight="bold">Agent 2: Resolver (ReAct)</text><text x="845" y="50" text-anchor="middle" font-size="10">thought → action → observation, max 5 steps</text><text x="845" y="66" text-anchor="middle" font-size="10">tools: search_transcript, search_memory, finish</text>
+ <line x1="670" y1="48" x2="720" y2="48" stroke="#333" marker-end="url(#a)"/>
+ <text x="560" y="104" text-anchor="middle" font-size="10.5">payload → { item, missing:[owner|deadline], full transcript, memory handle }</text>
+ <text x="560" y="120" text-anchor="middle" font-size="10.5">return ← { owner, owner_quote, deadline, deadline_quote } or nulls (give up)</text>
+ <path d="M845 86 L845 150 L330 150 L330 175" fill="none" stroke="#333" marker-end="url(#a)"/>
+ <rect x="190" y="175" width="280" height="62" rx="8" fill="#fbe3e3" stroke="#a33"/><text x="330" y="196" text-anchor="middle" font-weight="bold">GUARDRAIL 1 (code, no LLM)</text><text x="330" y="212" text-anchor="middle" font-size="10">quote must appear verbatim in transcript;</text><text x="330" y="226" text-anchor="middle" font-size="10">claimed owner/deadline must be inside its quote</text>
+ <rect x="520" y="175" width="190" height="62" rx="8" fill="#e8e8f8" stroke="#447"/><text x="615" y="198" text-anchor="middle" font-weight="bold">Memory layer</text><text x="615" y="214" text-anchor="middle" font-size="10">output/memory.json, TF-IDF search</text><text x="615" y="228" text-anchor="middle" font-size="10">duplicate check; hint only</text>
+ <line x1="470" y1="206" x2="520" y2="206" stroke="#333" marker-end="url(#a)"/>
+ <path d="M720 100 L720 140 L640 140 L640 175" fill="none" stroke="#447" stroke-dasharray="4 3" marker-end="url(#a)"/><text x="722" y="135" font-size="10" fill="#447">search_memory</text>
+ <rect x="190" y="290" width="280" height="50" rx="8" fill="#fbe3e3" stroke="#a33"/><text x="330" y="311" text-anchor="middle" font-weight="bold">GUARDRAIL 2: eligibility</text><text x="330" y="328" text-anchor="middle" font-size="10">CONFIRMED + owner + deadline + verified quote</text>
+ <line x1="330" y1="237" x2="330" y2="290" stroke="#333" marker-end="url(#a)"/>
+ <rect x="190" y="385" width="280" height="50" rx="8" fill="#fff4cc" stroke="#a80"/><text x="330" y="406" text-anchor="middle" font-weight="bold">GUARDRAIL 3: human approve / reject</text><text x="330" y="423" text-anchor="middle" font-size="10">duplicates flagged from memory</text>
+ <line x1="330" y1="340" x2="330" y2="385" stroke="#333" marker-end="url(#a)"/>
+ <rect x="560" y="385" width="260" height="50" rx="8" fill="#eef" stroke="#447"/><text x="690" y="406" text-anchor="middle" font-weight="bold">MCP Filesystem server</text><text x="690" y="423" text-anchor="middle" font-size="10">write_file + read_text_file read-back</text>
+ <line x1="470" y1="410" x2="560" y2="410" stroke="#333" marker-end="url(#a)"/>
+ <path d="M690 385 L690 300 L615 300 L615 237" fill="none" stroke="#447" marker-end="url(#a)"/><text x="700" y="296" font-size="10" fill="#447">remember()</text>
+ <text x="490" y="490" text-anchor="middle" font-size="11">Rejected items (TENTATIVE, DISCUSSED_ONLY, unresolved NEEDS_INFO, unverifiable quotes) never reach the write step.</text>
+</svg>
+
+<h3>Roles, handoff and reasoning</h3>
+<table>
+<tr><th>Component</th><th>Detail</th></tr>
+<tr><td>Extractor agent</td><td><code>backend/agents/extractor.py</code>. Single LLM call (NRP-hosted model; <code>qwen3</code> / <code>glm-5</code>). Classifies candidates as CONFIRMED, TENTATIVE, DISCUSSED_ONLY, NEEDS_INFO; the prompt biases toward the lower-confidence label.</td></tr>
+<tr><td>Resolver agent</td><td><code>backend/agents/resolver.py</code>. Separate system prompt and loop. Only job: find a missing owner/deadline stated elsewhere in the transcript, or report that it is not stated.</td></tr>
+<tr><td>Handoff trigger</td><td><code>backend/agents/handoff.py</code>. The Extractor emits <code>NEEDS_INFO</code> (decisive language but missing owner and/or deadline).</td></tr>
+<tr><td>Handoff payload</td><td>Item (title, quote), list of missing fields, full transcript, memory handle. The return value is the same item, upgraded to CONFIRMED only when both fields have verified quotes.</td></tr>
+<tr><td>Reasoning pattern</td><td>ReAct, implemented explicitly: JSON <code>{thought, action, input}</code> per turn; observations fed back; hard cap of 5 steps; unusable replies stop the loop.</td></tr>
+<tr><td>Knowledge / memory</td><td><code>backend/core/memory.py</code>. Persistent JSON store of human-approved items with lexical TF-IDF retrieval (RAG-lite, no embeddings). Used for <code>search_memory</code> hints and cross-meeting duplicate detection.</td></tr>
+<tr><td>Guardrails</td><td>(1) quote verification and value-in-quote check in code (<code>backend/core/guardrails.py</code>), (2) eligibility rule, (3) human confirmation, (4) memory is never evidence, (5) MCP server sandboxed to <code>./output</code>, (6) consent prompts before recording or transcribing.</td></tr>
+</table>
+
+<h3>Code organization (backend at the top, frontend at the bottom)</h3>
+<pre>backend/            Python: agents/ (extractor, resolver, handoff) · core/ (config, llm_client, guardrails, memory)
+                    tools/ (MCP client) · speech/ (Whisper + own model) · workers/ (processes the app launches)
+docs/               setup guides and this report
+tests/              backend/ unit tests · frontend/ unit + Electron e2e tests · run_tests.py live suite
+frontend/main/      Electron main process: controllers/ · services/ · models/ · preload
+frontend/renderer/  React UI: components/ · hooks/ · lib/ · css/ (split stylesheets)</pre>
+
+<h2>3. Evaluation plan – 10 test cases</h2>
+<p>Pass criteria are automatic where possible. Cases T1–T6 are live end-to-end (real model + real MCP server) in <code>tests/run_tests.py</code>; T7–T10 are offline/unit or manual. Because the model is non-deterministic, live cases are run 3 times and must pass 3/3 (or we report the failure rate).</p>
+<table>
+<tr><th>#</th><th>Test case</th><th>Input</th><th>Expected result</th><th>Measures</th></tr>
+<tr><td>T1</td><td>Clear commitment</td><td><code>a_confirmed</code></td><td>CONFIRMED item with owner+deadline, verified quote, file written and read back</td><td>Happy path, MCP write</td></tr>
+<tr><td>T2</td><td>Hedged commitment</td><td><code>b_tentative</code> ("might", "I'll try")</td><td>TENTATIVE; nothing written</td><td>False-CONFIRMED rate (target 0)</td></tr>
+<tr><td>T3</td><td>Idea only</td><td><code>c_discussed_only</code></td><td>DISCUSSED_ONLY; nothing written</td><td>False-CONFIRMED rate</td></tr>
+<tr><td>T4</td><td>Decision with no owner/deadline anywhere</td><td><code>d_needs_info</code></td><td>Handoff fires, Resolver gives up with nulls, item stays NEEDS_INFO, clarifying question shown, nothing written</td><td>Handoff trigger; Resolver does not invent</td></tr>
+<tr><td>T5</td><td>Multiple commitments</td><td><code>e_multiple_confirmed</code></td><td>2 CONFIRMED items, different owners/deadlines, both written</td><td>Recall on multi-item</td></tr>
+<tr><td>T6</td><td>Owner/deadline stated later in the meeting</td><td><code>f_resolvable</code></td><td>Item reaches CONFIRMED (directly, or via Resolver with quotes) and is written</td><td>Resolver success / end-to-end</td></tr>
+<tr><td>T7</td><td>Resolver hallucination</td><td>Scripted fake LLM returns an invented quote</td><td>Claim rejected, item stays NEEDS_INFO</td><td>Guardrail effectiveness (unit)</td></tr>
+<tr><td>T8</td><td>Memory is not evidence</td><td>Memory says "Jordan"; transcript has no owner</td><td>Owner not applied</td><td>Memory-poisoning resistance (unit)</td></tr>
+<tr><td>T9</td><td>Cross-meeting duplicate</td><td>Same commitment approved in meeting 1, repeated in meeting 2</td><td>Flagged <code>[memory]</code>; skipped under <code>--approve-all</code>; memory persists across runs</td><td>Memory layer value</td></tr>
+<tr><td>T10</td><td>Speech-to-text quality</td><td>Recorded meeting transcribed with local Whisper; LibriSpeech clip as reference</td><td>Quotes verify against the produced transcript; word errors measured against a known reference; multi-speaker audio checked manually for lost or merged content</td><td>Transcription effect on accuracy</td></tr>
+</table>
+<p class="small"><b>Metrics we will report:</b> precision of items written (target ≥ 95%, because every written item must be a real commitment), recall of true commitments (target ≥ 70% – we value precision over recall), false-CONFIRMED count (target 0), handoff success rate, steps used by the Resolver, seconds per transcript, cost per transcript. Offline tests T7–T9 are in <code>tests/backend/test_agents.py</code> (13 tests, passing), and the whole Python suite is 30 passing tests.</p>
+
+<h2>4. Operational cost model (100 / 1,000 / 10,000 users)</h2>
+<h3>Assumptions (all replaceable)</h3>
+<ul>
+<li>Usage: 8 meetings per user per month, 30 minutes each; transcript ≈ 7,000 input tokens.</li>
+<li>LLM price (assumed commercial mid-tier model, since the NRP endpoint is a free research platform and not a production service): <b>$0.50 / M input tokens, $2.00 / M output tokens</b>.</li>
+<li>Extractor: 7,000 in + 800 out ≈ <b>$0.0051</b>/meeting. The Resolver fires on ~30% of meetings (assumption): 3 steps × 7,200 in + 150 out ≈ $0.0117 → $0.0035 expected. <b>LLM ≈ $0.0086/meeting.</b></li>
+<li><b>Speech-to-text (base case): $0 to us.</b> The desktop app runs open-source Whisper on the user's own computer, so there is no per-minute API cost. The trade-off is the user's hardware and a one-time ~150 MB model download.</li>
+<li><b>Speech-to-text (alternative: hosted Whisper API for a web or mobile version):</b> assumed <b>$0.006 per audio minute</b> for 50% of meetings.</li>
+<li>Hosting/infra ($40 / $250 / $2,200) and other per-user costs (storage, email, logging: $0.10/user) are rough estimates.</li>
+<li>Price assumption for margin only: $12 per user per month.</li>
+</ul>
+<table>
+<tr><th></th><th>100 users</th><th>1,000 users</th><th>10,000 users</th></tr>
+<tr><td>Meetings / month</td><td>800</td><td>8,000</td><td>80,000</td></tr>
+<tr><td>LLM (Extractor + Resolver)</td><td>$6.89</td><td>$68.88</td><td>$688.80</td></tr>
+<tr><td>Hosting / database / queue</td><td>$40</td><td>$250</td><td>$2,200</td></tr>
+<tr><td>Storage, email, logging ($0.10/user)</td><td>$10</td><td>$100</td><td>$1,000</td></tr>
+<tr><td>Speech-to-text, local Whisper (base case)</td><td>$0</td><td>$0</td><td>$0</td></tr>
+<tr><td><b>Total monthly cost (base case)</b></td><td><b>$56.89</b></td><td><b>$418.88</b></td><td><b>$3,888.80</b></td></tr>
+<tr><td>Cost per user / month</td><td>$0.57</td><td>$0.42</td><td>$0.39</td></tr>
+<tr><td>Revenue if all pay $12</td><td>$1,200</td><td>$12,000</td><td>$120,000</td></tr>
+<tr><td>Gross margin (before payroll, support, payment fees)</td><td>95%</td><td>97%</td><td>97%</td></tr>
+<tr><td>Alternative: + hosted Whisper API (50% of meetings)</td><td>+$72.00</td><td>+$720.00</td><td>+$7,200.00</td></tr>
+<tr><td><b>Total with hosted Whisper</b></td><td><b>$128.89</b></td><td><b>$1,138.88</b></td><td><b>$11,088.80</b></td></tr>
+<tr><td>Cost per user / margin with hosted Whisper</td><td>$1.29 / 89%</td><td>$1.14 / 91%</td><td>$1.11 / 91%</td></tr>
+</table>
+<p><b>What this tells us.</b> Running speech-to-text on the user's device removes the largest variable cost; the LLM is then under 20% of cost at every scale and fixed hosting dominates. If the Resolver fires on 100% of meetings instead of 30%, LLM cost rises about 2.4× (≈ $0.02/meeting) – still small. <b>Sensitivity:</b> if only 25% of 100 users pay, revenue is $300 against $57 cost – positive, but payroll is not covered; at this scale the product is not self-sustaining without outside funding. Risks not modeled: model price changes, retries after failures, abuse, a free tier, and support cost for users whose computers are too slow for local Whisper.</p>
+
+<h2>5. Path to sustainability</h2>
+<table>
+<tr><th>Stage</th><th>Approach</th><th>Evidence needed before moving on</th></tr>
+<tr><td>0–100 users (pilot)</td><td>Free for pilot teams; founders absorb ~$60/month; on-device Whisper keeps costs minimal.</td><td>≥ 30 teams use it weekly; precision ≥ 95% on their meetings.</td></tr>
+<tr><td>100–1,000</td><td>Paid plan (assumed $8–15 per user/month) for small teams; free tier limited to 3 meetings/month.</td><td>≥ 10% free→paid conversion; cost per user under $2.</td></tr>
+<tr><td>1,000–10,000</td><td>Team plan with integrations (Jira / Google Calendar – planned, not built); annual billing; negotiate LLM volume pricing; move to a dedicated database for memory; optional hosted transcription for users without capable hardware.</td><td>Gross margin ≥ 70% after support; monthly churn under 5%.</td></tr>
+</table>
+<p><b>Sustainability risks and mitigations.</b> (1) Vendor dependence on LLM pricing – keep the model name in <code>.env</code> so models are swappable. (2) Privacy – recordings of people on calls: consent prompts, local storage and local transcription by default, no audio leaves the device, documented retention. (3) Accuracy trust – one false "decision" damages credibility, so we favor precision and always show the source quote. (4) Environmental footprint – small models, short prompts, a capped 5-step Resolver, and a small on-device Whisper model keep inference light. (5) Team sustainability – clear ownership by folder (backend, frontend, business docs) and automated tests keep handoffs between teammates safe.</p>
+
+<h2>6. User testing plan</h2>
+<ul>
+<li><b>Participants:</b> 8–10 people from 3–4 small teams (student project groups and one small business), each running at least 2 real meetings. Consent for recording is obtained from every attendee; participants can delete data at any time.</li>
+<li><b>Protocol:</b> Week 1 – 30-minute onboarding; participants record or import a meeting. Week 2 – they review the extracted items, approve/reject, and record whether each item was correct. We observe one session per team (think-aloud) without coaching.</li>
+<li><b>Measures:</b> precision and recall against participants' own list of real commitments (collected independently before they see the output); time from meeting end to approved list vs. their usual method; number of rejected/edited items; SUS usability score (target ≥ 68); trust question "Would you act on this item without checking the quote?"; willingness to pay (ask for a price, not a yes/no); Whisper word-error observations on their real audio.</li>
+<li><b>Success criteria:</b> ≥ 90% of approved items judged correct; ≥ 60% of true commitments found; ≥ 6 of 10 participants say they would use it again; no unconsented recording incidents.</li>
+<li><b>Ethics / data handling:</b> store transcripts locally; anonymize names in anything shared in the report; delete the data after analysis.</li>
+<li><b>What we will do with failures:</b> every false item or missed commitment is logged with the transcript snippet and added as a regression test.</li>
+</ul>
+
+<h2>7. Limitations and failures we have observed (honest section)</h2>
+<ul>
+<li><b>Model endpoint outage.</b> During testing the default <code>qwen3</code> endpoint hung for 5+ minutes on even a trivial prompt, while <code>glm-5</code> answered in ~3 s. We switched models via <code>MODEL_NAME</code>; the agent has no timeout/fallback yet – an open bug.</li>
+<li><b>The handoff is rare on easy transcripts.</b> On <code>f_resolvable</code> the Extractor resolved owner and deadline itself, so no handoff occurred. We verified the Resolver by running it directly on that transcript (it found both with quotes) and on <code>d_needs_info</code> (it correctly gave up). Different models also reason differently: <code>glm-5</code> searched the transcript before answering, while <code>qwen3</code> answered after one thought.</li>
+<li><b>Resolver quotes can span a speaker label</b> (e.g. "Morgan: Thanks. Back to the pricing page …"); the check accepts this because it is verbatim text.</li>
+<li><b>Memory is lexical, and the desktop app does not write to it.</b> A paraphrased duplicate is missed; only items approved through the terminal CLI are remembered (the desktop app reads memory but does not save approvals to it); no concurrency control.</li>
+<li><b>Speech-to-text is moderately accurate.</b> Whisper base transcribed a LibriSpeech test clip with a few word errors ("were sleeping" became "are sleeping"; "a cooing dove" became "accuing dove"). Real multi-speaker calls have not been tested. The first run needs internet to download the model. We first built a Wispr Flow cloud integration but removed it because Wispr's API is closed to new users, so it could never be tested against the live service.</li>
+<li><b>Non-determinism.</b> The same transcript can give different labels on different runs.</li>
+<li><b>Scale.</b> Single-user JSON memory; no auth or multi-user backend yet, so the 1,000 and 10,000-user rows are cost estimates, not tested capacity.</li>
+</ul>
+
+<h2>8. Team contributions (from the Git history)</h2>
+<table>
+<tr><th>Member</th><th>Commits (main + tony-update)</th><th>Work</th></tr>
+<tr><td>Samuel Tusick</td><td>14</td><td>Repository setup, MCP filesystem integration, verification guardrail, test runner, Whisper integration, dependency pinning, pull-request merges</td></tr>
+<tr><td>Ishita Chakkalakkal</td><td>5</td><td>Multi-item test case, chained memory-then-transcript resolver test, README test-count updates</td></tr>
+<tr><td>Tony Nguyen</td><td>2 + this restructure</td><td>Resolver agent, ReAct loop, memory layer, handoff, desktop app, code reorganization, this report</td></tr>
+</table>
+<p class="small">The assignment requires visible commits from both CS and entrepreneurship members. The cost model, sustainability path and user testing plan in this report are the entrepreneurship deliverables; the team should make sure those members commit their edits (for example to <code>docs/report/</code> or the README CHANGES section) so the history shows both tracks.</p>
+
+</body></html>
