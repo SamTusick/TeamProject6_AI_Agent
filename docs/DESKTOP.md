@@ -1,0 +1,159 @@
+# Team6 Meetings: Desktop Preview
+
+## Scope
+
+This is our own Windows meeting companion, not a Fireflies or Otter connector.
+It runs while the user attends Zoom, Microsoft Teams, or another call application.
+It does not join meetings independently, schedule a bot, or stream live captions.
+Recording, transcription, and action analysis are separate, explicit operations.
+
+The desktop app is a development preview launched from this checkout. A signed
+installer with bundled Python, updates, and production crash recovery is not yet
+provided.
+
+## Run
+
+Prerequisites: Windows, Node.js compatible with the installed Vite/Electron
+versions, and a Python virtual environment at the repository's `.venv` path.
+Development validation used Node 22.14.0 and Python 3.11.9.
+
+```powershell
+npm install
+python -m venv .venv
+& .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+npm start
+```
+
+Skip virtual-environment creation when `.venv` already exists. `npm start` builds
+the UI and opens a native Electron window; there is no web server to visit.
+
+Action analysis uses the existing local `.env` values:
+
+```dotenv
+NRP_API_KEY=your-own-key
+NRP_BASE_URL=https://ellm.nrp-nautilus.io/v1
+MODEL_NAME=qwen3
+```
+
+Enter keys locally, never in chat or committed files. The desktop does not display
+the NRP key or alter the original CLI configuration.
+
+## Workflows
+
+### Transcript review
+
+1. Choose **New meeting**, paste a transcript, or import a UTF-8 `.txt` file.
+2. Choose **Analyze** and confirm sending the transcript to the configured model.
+3. Review each candidate's owner, deadline, reasoning, and source quote.
+4. Approve or reject items. Only confirmed items with a nonempty owner, deadline,
+   and matching source quote are approvable. These rules are checked again in
+   the main process when saving and exporting.
+5. Export approved items as JSON. Editing the transcript clears its previous
+   analysis and decisions; reanalysis also resets decisions after success.
+
+Quote matching normalizes whitespace and case. Matching establishes textual
+support, not that a model inferred the correct owner or understood the decision.
+Human review remains necessary.
+
+### Recording
+
+1. Attend your call in Zoom, Teams, or another Windows application.
+2. Select **Record a meeting** (also available inside **New meeting**).
+3. Inform participants, obtain permission, and accept the recording prompt.
+4. The recorder mixes the default microphone and Windows system playback audio.
+   The visible level display shows the mixed signal, not separate source meters.
+5. Stop recording, then play back the locally saved WebM to check both sides.
+
+The implementation uses Electron's Windows loopback capture, Web Audio mixing,
+and MediaRecorder with Opus audio. Electron requests a temporary screen stream
+to obtain system audio, but only audio is recorded or stored. All capture tracks
+are stopped when the recording stops or setup fails.
+
+Recordings are limited to 30 minutes and 24 MB. Use headphones to reduce echo.
+System capture includes other apps and notifications, not just the meeting.
+Microphone selection currently follows the Windows default. There is no
+independent speaker identification or automatic participant-name assignment.
+Ensure important names are stated or review/correct the transcript before analysis.
+
+### Speech transcription
+
+An experimental, public-data training pipeline for our own randomly initialized
+speech model is documented in [SPEECH_TRAINING.md](SPEECH_TRAINING.md). It uses no
+pretrained speech weights. The initial checkpoint is not accurate enough for
+useful transcription, but it is connected for local experimentation.
+
+Install `requirements-speech.txt` in `.venv` and ensure the trained checkpoint
+exists at `.models/speech/smoke-run/checkpoint.pt`. Choose **Transcribe locally
+(experimental)** on a saved recording and confirm local processing. Audio stays
+on-device; no speech API key is required. The optional **Transcribe with Wispr
+Flow** button is the only cloud transcription path: save a Wispr Flow API key
+under **Connections**, and the recording is uploaded only after you confirm.
+Wispr Flow tidies speech, so the transcript is not word-for-word.
+
+The worker decodes WebM/Opus into mono 16 kHz audio and runs our checkpoint on
+15-second chunks. It has a 10-minute timeout. A nonempty result replaces the
+meeting transcript and invalidates prior decisions. Empty predictions or errors
+preserve the recording, transcript, and decisions. The current checkpoint
+normally returns no words and displays a training warning. Restart Electron
+after updating the code; reloading only the renderer does not update the backend.
+
+## Data and Security
+
+- Meetings are stored separately in Electron's `userData/meetings` directory,
+  outside this checkout. On Windows, `userData` is under the user's application
+  data directory. Each meeting has JSON metadata and, when recorded, WebM audio.
+- Meeting files are not encrypted at rest. Protect the Windows user account and
+  device. Delete a meeting to remove its local transcript, audio, and decisions;
+  exported copies and provider-retained data are not deleted by that action.
+- Speech keys are encrypted using Electron `safeStorage` (Windows OS protection).
+  Saved keys are never returned to the renderer. Changing the speech endpoint
+  clears the old key unless a new one is entered.
+- The renderer loads packaged local assets through a restricted custom scheme,
+  with sandboxing and context isolation enabled and Node integration disabled.
+  IPC exposes specific operations, validates the sender, and restricts file paths.
+- Recording needs explicit consent, and closing is blocked during recording or
+  model processing. Audio chunks are written during recording; a forced process
+  termination may leave incomplete audio without usable metadata. Automatic
+  crash recovery remains future work.
+- Desktop persistence/export uses local JSON directly. The original CLI's MCP
+  filesystem export behavior is unchanged and is not used by desktop history.
+
+## Tests
+
+```powershell
+npm test
+& .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_desktop_worker.py -v
+npm run test:desktop
+```
+
+- Node tests cover approval enforcement, persistence, transcript invalidation,
+  path validation, deletion, and the speech request/response contract.
+- Python tests cover independent quote verification and eligibility.
+- Playwright launches the real Electron binary with isolated temporary data.
+  It checks credential encryption, renderer isolation, review persistence,
+  exports, transcript edits, synthetic audio recording/playback, visible waveform
+  pixels, narrow layouts, and renderer exceptions. Native dialogs and capture
+  devices are stubbed in these tests; no real microphone or meeting is recorded.
+- Screenshots are generated in ignored `test-artifacts/`.
+- A live service-bridge check has succeeded using a synthetic sentence and the
+  configured NRP model. The local speech flow is tested with generated WebM,
+  the actual checkpoint, no saved speech key, and preservation on blank output.
+  This does not establish useful recognition accuracy or real-call performance.
+
+The existing live CLI suite remains `python tests/run_tests.py`. It is separate
+from offline desktop tests, makes model calls, and can vary between runs.
+
+## Real-Call Acceptance Checklist
+
+Before using this preview for important meetings:
+
+1. Run a short, consented Zoom test and a Teams test with another participant.
+2. Verify both your own microphone and the remote participant in recorded playback.
+3. Verify denial of microphone permission shows an error and releases capture.
+4. Test headphones, the default output device, muting, and device disconnection.
+5. Train and evaluate a useful checkpoint, then verify local transcription accuracy.
+6. Check speaker/owner accuracy, quotes, deadlines, approval persistence, and export.
+
+These hardware/platform checks have not been completed automatically. Independent
+meeting bots, live transcription, production-quality speech models, diarization, and installer
+distribution are later milestones, not current capabilities.

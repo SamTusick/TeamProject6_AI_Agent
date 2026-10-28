@@ -1,8 +1,25 @@
 {
   "name": "teamproject6-ai-agent-mcp",
   "private": true,
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "build": "vite build",
+    "start": "npm run build && electron .",
+    "test": "node --test tests/desktop-store.test.cjs tests/desktop-services.test.cjs",
+    "test:desktop": "npm run build && node tests/desktop.e2e.cjs"
+  },
   "description": "Pins the official MCP filesystem server so mcp_client.py can launch it directly with node instead of through the npx shim.",
   "dependencies": {
-    "@modelcontextprotocol/server-filesystem": "2026.8.31"
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@modelcontextprotocol/server-filesystem": "2026.8.31",
+    "lucide-react": "^1.49.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "electron": "^44.5.1",
+    "vite": "^8.3.1"
   }
 }
