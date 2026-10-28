@@ -29,9 +29,10 @@ OUTPUT_FILE = REPO_ROOT / "output" / "action_items.json"
 sys.path.insert(0, str(REPO_ROOT))
 
 from agent import run as run_agent  # noqa: E402
+from memory import MeetingMemory  # noqa: E402
 from verify import quote_found_in_transcript  # noqa: E402
 
-CASES = ["a_confirmed", "b_tentative", "c_discussed_only", "d_needs_info", "e_multiple_confirmed"]
+CASES = ["a_confirmed", "b_tentative", "c_discussed_only", "d_needs_info", "e_multiple_confirmed", "f_resolvable"]
 
 
 async def run_case(name: str) -> bool:
@@ -44,7 +45,11 @@ async def run_case(name: str) -> bool:
     if OUTPUT_FILE.exists():
         OUTPUT_FILE.unlink()
 
-    result = await run_agent(str(transcript_path), approve_all=True)
+    # Each case starts with empty memory so earlier cases can't mark it a duplicate.
+    memory_file = TESTS_DIR / "_memory_tmp.json"
+    memory_file.unlink(missing_ok=True)
+    result = await run_agent(str(transcript_path), approve_all=True, memory=MeetingMemory(memory_file))
+    memory_file.unlink(missing_ok=True)
     items = result["items"]
 
     checks = {}

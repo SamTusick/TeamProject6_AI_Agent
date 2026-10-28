@@ -1,0 +1,8 @@
+SYNTHETIC TEST DATA - generated for automated testing, not a real meeting.
+
+Morgan: We have to publish the updated pricing page, that's decided.
+Taylor: Agreed, no question about it.
+Morgan: Okay, let's move on to the hiring update for a bit.
+Taylor: Two candidates are scheduled for next week, nothing else to report.
+Morgan: Thanks. Back to the pricing page - Taylor, you own that and it goes live by Thursday.
+Taylor: Understood, I'll make sure it's live by Thursday.

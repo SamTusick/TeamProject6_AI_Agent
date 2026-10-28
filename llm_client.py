@@ -138,6 +138,16 @@ async def classify_transcript(transcript_text: str) -> list[dict]:
     return parse_classification_response(raw_text)
 
 
+async def complete_json(messages: list[dict]) -> str:
+    """One chat turn that must return a JSON object (used by the Resolver agent)."""
+    response = await client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=messages,
+        response_format={"type": "json_object"},
+    )
+    return response.choices[0].message.content
+
+
 async def _smoke_test():
     """Step 3 check: prove the NRP endpoint responds, no JSON parsing yet."""
     print(f"[reason] sending trivial prompt to model='{MODEL_NAME}'")
