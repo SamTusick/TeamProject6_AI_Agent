@@ -9,8 +9,8 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset
 
-from speech.model import SpeechModel, features
-from speech.text import VOCABULARY, decode_ctc, encode
+from backend.speech.model import SpeechModel, features
+from backend.speech.text import VOCABULARY, decode_ctc, encode
 
 
 class SpeechDataset(Dataset):
@@ -24,7 +24,7 @@ class SpeechDataset(Dataset):
         if limit:
             self.records = self.records[:limit]
         if not self.records:
-            raise ValueError(f"No usable examples in {split}; run speech.prepare first.")
+            raise ValueError(f"No usable examples in {split}; run backend.speech.prepare first.")
 
     def __len__(self):
         return len(self.records)

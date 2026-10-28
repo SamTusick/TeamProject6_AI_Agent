@@ -44,8 +44,8 @@ From the repository root with the existing Python 3.11 virtual environment:
 ```powershell
 & .\.venv\Scripts\python.exe -m pip install -r requirements-speech.txt
 & .\.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_speech_*.py' -v
-& .\.venv\Scripts\python.exe -m speech.prepare
-& .\.venv\Scripts\python.exe -m speech.train --epochs 2 --max-train 32 --max-dev 16 --batch-size 4 --output .models/speech/my-smoke-run
+& .\.venv\Scripts\python.exe -m backend.speech.prepare
+& .\.venv\Scripts\python.exe -m backend.speech.train --epochs 2 --max-train 32 --max-dev 16 --batch-size 4 --output .models/speech/my-smoke-run
 ```
 
 Use a new output directory for every run. Existing checkpoints are not silently
@@ -81,7 +81,7 @@ Local artifacts from this run:
 This command starts a fresh, longer run on the filtered public training set:
 
 ```powershell
-& .\.venv\Scripts\python.exe -m speech.train --epochs 20 --batch-size 4 --output .models/speech/full-run
+& .\.venv\Scripts\python.exe -m backend.speech.train --epochs 20 --batch-size 4 --output .models/speech/full-run
 ```
 
 It has not been run as part of the short validation. It may be slow on this
@@ -98,7 +98,7 @@ decoder, punctuation restoration, diarization, streaming, or noise augmentation.
 ## Experimental Checkpoint Inference
 
 ```powershell
-& .\.venv\Scripts\python.exe -m speech.transcribe path/to/clip.wav --checkpoint .models/speech/smoke-run/checkpoint.pt
+& .\.venv\Scripts\python.exe -m backend.speech.transcribe path/to/clip.wav --checkpoint .models/speech/smoke-run/checkpoint.pt
 ```
 
 This CLI accepts mono 16 kHz WAV/FLAC clips between 25 ms and 15 seconds.
@@ -106,7 +106,7 @@ Only load trusted project checkpoints. Empty output is currently expected for
 the short-run checkpoint.
 
 The desktop's **Transcribe locally (experimental)** button now uses
-`.models/speech/smoke-run/checkpoint.pt` through `speech.desktop_worker`.
+`.models/speech/smoke-run/checkpoint.pt` through `backend.workers.transcription_worker`.
 Install `requirements-speech.txt`, then restart Electron after code changes.
 No speech API key, Whisper, pretrained speech weights, or audio upload is used.
 PyAV decodes WebM/Opus, downmixes to mono, and resamples to 16 kHz. Inference uses

@@ -1,38 +1,17 @@
-"""NRP model client: connection setup + the classification call.
+"""Extractor agent: reads a transcript and classifies candidate action items.
 
-Reuses the same AsyncOpenAI client pattern as the class chapter_02/
-chapter_03 scripts, but calls chat.completions.create() directly
-instead of going through the OpenAI Agents SDK's Agent/Runner, so
-this script - not the model - controls when anything gets written
-to disk.
-
-Run this file directly for a trivial connectivity smoke test:
-
-    python llm_client.py
+Reuses the shared AsyncOpenAI client but calls chat.completions.create()
+directly instead of going through an Agent/Runner abstraction, so the
+pipeline - not the model - controls when anything gets written to disk.
 """
 
-import asyncio
 import json
-import os
 
-from dotenv import load_dotenv
-from openai import AsyncOpenAI
+from backend.core.llm_client import MODEL_NAME, client
 
-load_dotenv()
-
-# MODEL_NAME lives in .env so switching qwen3 <-> glm-5 (or anything
-# else NRP hosts) never requires a code change.
-MODEL_NAME = os.getenv("MODEL_NAME", "qwen3")
-
-client = AsyncOpenAI(
-    base_url=os.getenv("NRP_BASE_URL"),
-    api_key=os.getenv("NRP_API_KEY"),
-)
-
-# The persona + core instruction. Every rule here exists to push the
-# model toward under-classifying rather than over-claiming CONFIRMED:
-# a missed action item just gets noticed by a human later, but a
-# false CONFIRMED becomes a "decision" nobody actually made.
+# Every rule here pushes the model toward under-classifying rather than
+# over-claiming CONFIRMED: a missed action item is noticed by a human later,
+# but a false CONFIRMED becomes a "decision" nobody actually made.
 SYSTEM_PROMPT = """You are a careful meeting-minutes analyst. You read a raw \
 meeting transcript and extract CANDIDATE action items. You do not summarize \
 the whole meeting - you only pull out things that could become tracked tasks.
@@ -93,6 +72,8 @@ a short question asking for the missing owner and/or deadline, otherwise null"
 }
 """
 
+REQUIRED_FIELDS = {"title", "owner", "deadline", "classification", "reasoning", "quote"}
+
 
 def parse_classification_response(raw_text: str) -> list[dict]:
     """Defensively parse the model's JSON reply into a list of item dicts.
@@ -111,10 +92,9 @@ def parse_classification_response(raw_text: str) -> list[dict]:
         print("[reason] ERROR: JSON response missing an 'items' list")
         return []
 
-    required_fields = {"title", "owner", "deadline", "classification", "reasoning", "quote"}
     valid_items = []
     for i, item in enumerate(items):
-        if not isinstance(item, dict) or not required_fields.issubset(item.keys()):
+        if not isinstance(item, dict) or not REQUIRED_FIELDS.issubset(item.keys()):
             print(f"[reason] WARNING: skipping malformed item at index {i}: {item!r}")
             continue
         item.setdefault("clarifying_question", None)
@@ -124,7 +104,7 @@ def parse_classification_response(raw_text: str) -> list[dict]:
 
 
 async def classify_transcript(transcript_text: str) -> list[dict]:
-    """Send a transcript to the NRP model and return parsed candidate items."""
+    """Send a transcript to the model and return parsed candidate items."""
     print(f"[reason] sending transcript to model='{MODEL_NAME}' for classification")
     response = await client.chat.completions.create(
         model=MODEL_NAME,
@@ -134,29 +114,4 @@ async def classify_transcript(transcript_text: str) -> list[dict]:
         ],
         response_format={"type": "json_object"},
     )
-    raw_text = response.choices[0].message.content
-    return parse_classification_response(raw_text)
-
-
-async def complete_json(messages: list[dict]) -> str:
-    """One chat turn that must return a JSON object (used by the Resolver agent)."""
-    response = await client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=messages,
-        response_format={"type": "json_object"},
-    )
-    return response.choices[0].message.content
-
-
-async def _smoke_test():
-    """Step 3 check: prove the NRP endpoint responds, no JSON parsing yet."""
-    print(f"[reason] sending trivial prompt to model='{MODEL_NAME}'")
-    response = await client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[{"role": "user", "content": "Reply with exactly: NRP connection OK"}],
-    )
-    print(f"[reason] model replied: {response.choices[0].message.content}")
-
-
-if __name__ == "__main__":
-    asyncio.run(_smoke_test())
+    return parse_classification_response(response.choices[0].message.content)

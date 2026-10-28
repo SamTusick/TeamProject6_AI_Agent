@@ -1,6 +1,6 @@
 """Resolver agent: a second agent that fills in missing owner/deadline details.
 
-Handoff contract (see agent.py):
+Handoff contract (see handoff.py):
     trigger  the Extractor classified an item NEEDS_INFO (a decision was made
              but the owner and/or deadline was not stated where it was found)
     payload  {"item": <extracted item>, "missing": ["owner", "deadline"],
@@ -25,8 +25,8 @@ import json
 import re
 from typing import Awaitable, Callable
 
-from memory import MeetingMemory, tokenize
-from verify import normalize, quote_found_in_transcript
+from backend.core.guardrails import normalize, quote_found_in_transcript
+from backend.core.memory import MeetingMemory, tokenize
 
 MAX_STEPS = 5
 MAX_OBSERVATION_LINES = 5
@@ -177,32 +177,3 @@ async def resolve_item(
             "deadline_quote": evidence.get("deadline_quote"),
         }
     return resolved
-
-
-async def hand_off_needs_info(
-    items: list[dict], transcript: str, memory: MeetingMemory, llm: LLM | None = None
-) -> tuple[list[dict], int]:
-    """Handoff: Extractor -> Resolver for every NEEDS_INFO item.
-
-    Trigger: classification == NEEDS_INFO. Payload: the item, what is missing,
-    the transcript, and the memory store. The Resolver returns the item,
-    upgraded to CONFIRMED only when it can cite verbatim evidence.
-    """
-    updated, handoffs = [], 0
-    if llm is None:
-        from llm_client import complete_json as llm
-    for item in items:
-        if item.get("classification") != "NEEDS_INFO":
-            updated.append(item)
-            continue
-        handoffs += 1
-        missing = [f for f in ("owner", "deadline") if not item.get(f)]
-        print(f"[handoff] Extractor -> Resolver: '{item['title']}' (missing: {', '.join(missing)})")
-        resolved = await resolve_item(item, transcript, memory, llm)
-        if resolved.get("classification") == "CONFIRMED":
-            print(f"[handoff] Resolver -> Extractor: resolved '{item['title']}' "
-                  f"(owner={resolved['owner']}, deadline={resolved['deadline']})")
-        else:
-            print(f"[handoff] Resolver -> Extractor: could not resolve '{item['title']}'; stays NEEDS_INFO")
-        updated.append(resolved)
-    return updated, handoffs

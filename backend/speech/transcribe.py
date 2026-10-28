@@ -4,8 +4,8 @@ from pathlib import Path
 import soundfile
 import torch
 
-from speech.model import SpeechModel, features
-from speech.text import VOCABULARY, decode_ctc
+from backend.speech.model import SpeechModel, features
+from backend.speech.text import VOCABULARY, decode_ctc
 
 
 def load_checkpoint(path):

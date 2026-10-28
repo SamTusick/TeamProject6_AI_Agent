@@ -1,6 +1,6 @@
 import unittest
 
-from speech.text import CHAR_TO_ID, decode_ctc, encode, normalize_transcript
+from backend.speech.text import CHAR_TO_ID, decode_ctc, encode, normalize_transcript
 
 
 class SpeechTextTests(unittest.TestCase):

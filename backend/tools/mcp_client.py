@@ -11,7 +11,7 @@ look up the real tool names before any call_tool().
 Run this file directly for a standalone connect + list_tools +
 write + read-back smoke test:
 
-    python mcp_client.py
+    python -m backend.tools.mcp_client
 """
 
 import asyncio
@@ -19,11 +19,14 @@ import json
 import shutil
 import sys
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.shared.exceptions import MCPError
+
+# The filesystem server is sandboxed to exactly this directory (the repo's
+# output/ folder). Never pass the repo root or a home directory instead.
+from backend.core.config import OUTPUT_DIR, REPO_ROOT
 
 # The server subprocess's stdio pipe can close mid-request (surfacing as
 # MCPError: Connection closed) without our code doing anything wrong -
@@ -49,18 +52,14 @@ def _flatten_exceptions(exc_group: BaseExceptionGroup) -> list[BaseException]:
     return leaves
 
 
-# The MCP filesystem server is sandboxed to exactly this directory.
-# Never pass the repo root or a home directory here.
-OUTPUT_DIR = (Path(__file__).parent / "output").resolve()
-
 # The server subprocess's stderr goes here rather than to the terminal -
 # see mcp_session() for why that matters on Windows.
-SERVER_LOG = Path(__file__).parent / "mcp_server.log"
+SERVER_LOG = REPO_ROOT / "mcp_server.log"
 
 
 # Populated by `npm install` from the pinned version in package.json.
 LOCAL_SERVER_JS = (
-    Path(__file__).parent
+    REPO_ROOT
     / "node_modules"
     / "@modelcontextprotocol"
     / "server-filesystem"
@@ -168,7 +167,7 @@ async def save_approved_items(items: list[dict]) -> bool:
     tool call, then read the file back through the server and print it
     to confirm the write round-tripped. Returns True on success.
 
-    This function is only ever called by agent.py AFTER a human has
+    This function is only ever called by backend/pipeline.py AFTER a human has
     approved each item in the CLI confirm step - the agent script
     decides when this runs, the model never does.
     """

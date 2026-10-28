@@ -1,9 +1,11 @@
+"""Analysis worker: the Electron app pipes a transcript in as JSON and reads the reviewed items back."""
+
 import asyncio
 import contextlib
 import json
 import sys
 
-from verify import eligibility_reason, is_eligible, quote_found_in_transcript
+from backend.core.guardrails import eligibility_reason, is_eligible, quote_found_in_transcript
 
 
 def review_items(items: list[dict], transcript: str) -> list[dict]:
@@ -34,9 +36,11 @@ async def process(request: dict) -> dict:
         raise ValueError("A nonempty transcript is required.")
     if len(transcript) > 100_000:
         raise ValueError("Transcript exceeds the 100,000 character limit.")
-    from llm_client import classify_transcript
-    from memory import MeetingMemory
-    from resolver_agent import hand_off_needs_info
+    # Imported lazily: building the model client needs credentials, which
+    # review_items() callers (and its unit tests) do not have.
+    from backend.agents.extractor import classify_transcript
+    from backend.agents.handoff import hand_off_needs_info
+    from backend.core.memory import MeetingMemory
 
     items = await classify_transcript(transcript)
     if not items:

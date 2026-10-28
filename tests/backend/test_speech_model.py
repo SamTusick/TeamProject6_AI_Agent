@@ -6,11 +6,11 @@ import unittest
 
 import torch
 
-from speech.model import SpeechModel, features
-from speech.prepare import extract
-from speech.text import VOCABULARY, encode
-from speech.train import collate, ctc_loss
-from speech.transcribe import load_checkpoint
+from backend.speech.model import SpeechModel, features
+from backend.speech.prepare import extract
+from backend.speech.text import VOCABULARY, encode
+from backend.speech.train import collate, ctc_loss
+from backend.speech.transcribe import load_checkpoint
 
 
 class SpeechModelTests(unittest.TestCase):

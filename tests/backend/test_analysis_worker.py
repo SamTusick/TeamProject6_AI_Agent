@@ -1,6 +1,6 @@
 import unittest
 
-from desktop_worker import review_items
+from backend.workers.analysis_worker import review_items
 
 
 class ReviewTests(unittest.TestCase):

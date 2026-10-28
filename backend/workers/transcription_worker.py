@@ -52,9 +52,9 @@ def process(request, model_loader=None, predict=None):
 
     whisper = request.get("backend", "whisper") == "whisper"
     if whisper:
-        from speech.whisper_backend import load_whisper as load_model, whisper_predict as predict_text
+        from backend.speech.whisper_backend import load_whisper as load_model, whisper_predict as predict_text
     else:
-        from speech.transcribe import load_checkpoint as load_model, transcribe_waveform as predict_text
+        from backend.speech.transcribe import load_checkpoint as load_model, transcribe_waveform as predict_text
 
     audio_path = Path(request["audioPath"])
     checkpoint = Path(request["checkpoint"]) if request.get("checkpoint") else None

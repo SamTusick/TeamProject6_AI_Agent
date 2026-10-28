@@ -22,7 +22,9 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-DEFAULT_MEMORY_FILE = Path(__file__).parent / "output" / "memory.json"
+from backend.core.config import OUTPUT_DIR
+
+DEFAULT_MEMORY_FILE = OUTPUT_DIR / "memory.json"
 
 _STOPWORDS = frozenset(
     "a an and are as at be by for from has have i in is it of on or our that the "

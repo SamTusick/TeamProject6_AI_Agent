@@ -8,7 +8,7 @@ import urllib.request
 
 import soundfile
 
-from speech.text import normalize_transcript
+from backend.speech.text import normalize_transcript
 
 
 DATASETS = {

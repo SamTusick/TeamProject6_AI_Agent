@@ -1,4 +1,4 @@
-"""Non-interactive test runner for the M2 agent.
+"""Non-interactive live test runner for the multi-agent pipeline.
 
 Drives the REAL pipeline (real NRP model call, real MCP filesystem
 server) against each synthetic transcript in tests/transcripts/,
@@ -12,7 +12,7 @@ checks:
   - for every other case: no MCP write occurred at all
 
 Run with:
-    python tests/run_tests.py
+    python -m tests.run_tests
 """
 
 import asyncio
@@ -20,17 +20,15 @@ import json
 import sys
 from pathlib import Path
 
+from backend.core.guardrails import quote_found_in_transcript
+from backend.core.memory import MeetingMemory
+from backend.pipeline import run as run_agent
+
 TESTS_DIR = Path(__file__).parent
 REPO_ROOT = TESTS_DIR.parent
 TRANSCRIPTS_DIR = TESTS_DIR / "transcripts"
 EXPECTED_DIR = TESTS_DIR / "expected"
 OUTPUT_FILE = REPO_ROOT / "output" / "action_items.json"
-
-sys.path.insert(0, str(REPO_ROOT))
-
-from agent import run as run_agent  # noqa: E402
-from memory import MeetingMemory  # noqa: E402
-from verify import quote_found_in_transcript  # noqa: E402
 
 CASES = ["a_confirmed", "b_tentative", "c_discussed_only", "d_needs_info", "e_multiple_confirmed", "f_resolvable"]
 

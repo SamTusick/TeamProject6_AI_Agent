@@ -6,7 +6,7 @@ from unittest.mock import patch
 import av
 import numpy as np
 
-from speech.desktop_worker import audio_chunks, process
+from backend.workers.transcription_worker import audio_chunks, process
 
 
 class DesktopSpeechTests(unittest.TestCase):
@@ -37,7 +37,7 @@ class DesktopSpeechTests(unittest.TestCase):
         chunks = list(audio_chunks(self.audio))
         self.assertEqual([len(chunk) for chunk in chunks], [240000, 16000])
         self.assertTrue(all(chunk.ndim == 1 and np.isfinite(chunk).all() for chunk in chunks))
-        with patch("speech.desktop_worker.MAX_SAMPLES", 16000):
+        with patch("backend.workers.transcription_worker.MAX_SAMPLES", 16000):
             with self.assertRaisesRegex(ValueError, "30 minutes"):
                 list(audio_chunks(self.audio))
 

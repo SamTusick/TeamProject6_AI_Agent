@@ -11,8 +11,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from memory import MeetingMemory
-from resolver_agent import hand_off_needs_info, parse_step, resolve_item, search_transcript
+from backend.agents.handoff import hand_off_needs_info
+from backend.agents.resolver import parse_step, resolve_item, search_transcript
+from backend.core.memory import MeetingMemory
 
 TRANSCRIPT = (
     "Morgan: We have to publish the updated pricing page, that's decided.\n"
