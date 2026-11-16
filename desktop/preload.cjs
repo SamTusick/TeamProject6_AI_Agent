@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld("meetings", {
   decide: (id, itemId, decision) =>
     invoke("meetings:decide", id, itemId, decision),
   export: (id) => invoke("meetings:export", id),
+  sendToJira: (id) => invoke("meetings:jira", id),
+  jiraStatus: () => invoke("jira:status"),
   delete: (id) => invoke("meetings:delete", id),
   settings: () => invoke("settings:get"),
   saveWisprSettings: (settings) => invoke("settings:saveWispr", settings),

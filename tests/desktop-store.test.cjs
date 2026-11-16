@@ -71,3 +71,21 @@ test("delete removes only the selected meeting and its audio", (context) => {
   assert.equal(fs.existsSync(store.audioFile(meeting.id)), false);
   assert.equal(store.read(other.id).title, "Keep");
 });
+
+test("Jira results are recorded per item and sent items are not resent", (context) => {
+  const store = fixture(context);
+  const meeting = store.create("Standup", transcript);
+  store.setAnalysis(meeting.id, [item, { ...item, title: "Second" }]);
+  store.decide(meeting.id, "0", "approved");
+  store.decide(meeting.id, "1", "approved");
+  assert.equal(store.jiraPending(meeting.id).length, 2);
+  const saved = store.setJiraResults(meeting.id, [
+    { id: "0", key: "TP6-1", assignee: "taylor@example.com", error: null },
+    { id: "1", key: null, assignee: null, error: "Field 'summary' is invalid" },
+    { id: "missing", key: "TP6-9" },
+  ]);
+  assert.equal(saved.items[0].jiraKey, "TP6-1");
+  assert.equal(saved.items[1].jiraError, "Field 'summary' is invalid");
+  assert.deepEqual(store.jiraPending(meeting.id).map((value) => value.id), ["1"]);
+  assert.throws(() => store.setJiraResults(meeting.id, null), /Invalid Jira/);
+});

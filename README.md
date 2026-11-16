@@ -19,7 +19,7 @@ Given a plain-text transcript, `agent.py` sends it to an NRP-hosted model (Qwen3
 
 ## Intentionally not implemented
 
-Live meeting join, Otter integration, Jira/Google Calendar writes (planned), embedding-based retrieval.
+Live meeting join, Otter integration, Google Calendar writes (planned), embedding-based retrieval.
 
 ## Setup
 
@@ -34,11 +34,37 @@ Live meeting join, Otter integration, Jira/Google Calendar writes (planned), emb
 ```
 python agent.py tests/transcripts/a_confirmed.txt
 python agent.py <your-transcript.txt> --approve-all   # skip interactive prompts
+python agent.py <your-transcript.txt> --jira          # also create assigned Jira issues (see below)
 python tests/run_tests.py                              # 6 live test cases (real model + MCP)
 python -m unittest discover -s tests -p test_multi_agent.py   # offline agent/memory tests (set PYTHONPATH=.)
 ```
 
 Set `MODEL_NAME=glm-5` in `.env` (or the environment) if the default `qwen3` endpoint is slow.
+
+**Model speed.** NRP's `qwen3` models "think" before answering, which by default produced ~13k hidden tokens per transcript (a 90-line standup took 120-170s with `qwen3-small` and timed out on `qwen3`/`glm-5`). Thinking is now disabled for every call (`LLM_THINKING=off`, the default), which brings the same standup to ~11s with every quote still verifying. Set `LLM_THINKING=on` to restore it.
+
+## Jira task assignment (MCP)
+
+Approved items can become Jira issues assigned to the owner named in the meeting: click **Send to Jira** next to Export in the desktop app, or run `python agent.py <transcript> --jira`. `jira_client.py` talks to the [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) MCP server over stdio with the same official MCP SDK as the filesystem write: it calls `list_tools()` first, requires `jira_create_issue`, and sends only the arguments that tool's schema declares. Items already sent show their key (e.g. `TP6-12`) and are never sent twice.
+
+1. Install the server into its own venv so it can't clash with this project's pinned `mcp`: `python -m venv .venv-jira` then `.venv-jira/Scripts/pip install mcp-atlassian==0.24.6`.
+2. Add these to `.env` (template in `.env.example`):
+
+   | Setting | Where to find it |
+   |---|---|
+   | `JIRA_URL` | The start of your Jira address in the browser, e.g. `https://yourteam.atlassian.net` (no trailing path). |
+   | `JIRA_USERNAME` | The email you log in to Atlassian with (must be the same account that creates the token). |
+   | `JIRA_API_TOKEN` | https://id.atlassian.com/manage-profile/security/api-tokens → **Create API token** → copy it once (it is not shown again). |
+   | `JIRA_PROJECT_KEY` | The uppercase prefix on the project's issues (`TP6` in `TP6-12`), also under Project settings → Details → Key. |
+   | `JIRA_ISSUE_TYPE` | Optional, default `Task`. Must exist in that project (see its "Create" dialog). |
+   | `JIRA_USER_MAP` | Optional; usually leave it out. Only needed for a nickname or a shared first name, e.g. `Sam=Samuel Tusick` (value = the person's Jira display name, as shown on the project's People page). |
+
+   Your account needs permission to create and assign issues in the project.
+3. Check the connection without creating anything: `python jira_client.py`. It lists the project's assignable people, which are the names that can be auto-assigned. The desktop app's **Connections** panel also shows whether Jira is set up; restart the app after editing `.env`.
+
+**Who gets assigned.** Owners are matched only against people who can be assigned issues in `JIRA_PROJECT_KEY` (`jira_search_assignable_users`), and the issue is created with that person's account ID, never a raw name (the server would otherwise fall back to the first fuzzy search hit). A match needs either the exact display name (`Taylor Reed`, any case or accents), or a first name that only one project member has (`Taylor`). Anyone else, including people outside the project and shared first names, gets an **unassigned** issue. If Jira refuses an assignee, the issue is re-created unassigned.
+
+Guardrails: only approved items are sent. Only deadlines already in `YYYY-MM-DD` form become due dates; phrases like "next Tuesday" go into the description with the verified source quote. Offline tests in `tests/test_jira.py` use a stand-in MCP server (`tests/fake_jira_server.py`).
 
 ## Multi-agent design (M3)
 

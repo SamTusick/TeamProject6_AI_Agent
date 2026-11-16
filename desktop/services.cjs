@@ -170,8 +170,53 @@ function runLocalTranscription(root, audioPath, options = {}) {
   });
 }
 
+// Jira assignment goes through jira_worker.py -> jira_client.py -> the
+// mcp-atlassian MCP server. Credentials stay in the project .env and are
+// read by Python; they never pass through the renderer.
+function runJira(root, request, options = {}) {
+  const python = path.join(root, ".venv", process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
+  const exists = options.exists || fs.existsSync;
+  if (!exists(python))
+    return Promise.reject(new Error("Project .venv is missing. Install the Python requirements first."));
+  return new Promise((resolve, reject) => {
+    const child = (options.spawn || spawn)(python, ["-X", "utf8", path.join(root, "jira_worker.py")], {
+      cwd: root,
+      windowsHide: true,
+      stdio: ["pipe", "pipe", "ignore"],
+    });
+    let output = "";
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, options.timeout || 180_000);
+    child.stdout.setEncoding?.("utf8");
+    child.stdout.on("data", (chunk) => {
+      output += chunk;
+    });
+    child.stdin.on("error", () => {});
+    child.on("error", () => {
+      clearTimeout(timer);
+      reject(new Error("Could not start the Jira worker. Check the project virtual environment."));
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (timedOut) return reject(new Error("Jira did not respond in time. Nothing further was sent."));
+      try {
+        const result = JSON.parse(output);
+        if (code !== 0 || result.error) throw new Error(result.error || "Jira request failed.");
+        resolve(result);
+      } catch (error) {
+        reject(new Error(error instanceof SyntaxError ? "The Jira worker returned an invalid response." : error.message));
+      }
+    });
+    child.stdin.end(JSON.stringify(request));
+  });
+}
+
 module.exports = {
   transcribeWispr,
   runAnalysis,
   runLocalTranscription,
+  runJira,
 };

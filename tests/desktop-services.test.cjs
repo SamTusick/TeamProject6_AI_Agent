@@ -2,7 +2,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { EventEmitter } = require("node:events");
 const { PassThrough } = require("node:stream");
-const { transcribeWispr, runLocalTranscription } = require("../desktop/services.cjs");
+const { transcribeWispr, runLocalTranscription, runJira } = require("../desktop/services.cjs");
 
 function localWorker(response, code = 0) {
   return {
@@ -70,4 +70,39 @@ test("Wispr Flow rejects missing keys, non-WAV audio and service failures", asyn
     }),
     /could not be reached/,
   );
+});
+
+function jiraWorker(response, code = 0, check = () => {}) {
+  return {
+    exists: () => true,
+    spawn: (_python, args, options) => {
+      assert.ok(args[2].endsWith("jira_worker.py"));
+      assert.equal(options.windowsHide, true);
+      const child = new EventEmitter();
+      child.stdin = new PassThrough();
+      child.stdout = new PassThrough();
+      child.kill = () => child.emit("close", 1);
+      let input = "";
+      child.stdin.on("data", (chunk) => { input += chunk; });
+      child.stdin.on("finish", () => {
+        check(JSON.parse(input));
+        child.stdout.write(response);
+        child.stdout.end();
+        setImmediate(() => child.emit("close", code));
+      });
+      return child;
+    },
+  };
+}
+
+test("Jira worker request and error handling", async () => {
+  const ok = await runJira("project", { action: "create", items: [{ id: "0" }] },
+    jiraWorker('{"results":[{"id":"0","key":"TP6-1"}]}', 0, (request) => {
+      assert.equal(request.action, "create");
+      assert.equal(request.items[0].id, "0");
+    }));
+  assert.equal(ok.results[0].key, "TP6-1");
+  await assert.rejects(runJira("project", { action: "status" }, jiraWorker('{"error":"Jira MCP server error"}', 1)), /Jira MCP server error/);
+  await assert.rejects(runJira("project", { action: "status" }, jiraWorker("not json")), /invalid response/);
+  await assert.rejects(runJira("project", {}, { exists: () => false }), /\.venv is missing/);
 });

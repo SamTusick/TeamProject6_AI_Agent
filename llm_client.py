@@ -32,6 +32,30 @@ client = AsyncOpenAI(
     max_retries=0,
 )
 
+# NRP's qwen3 family are reasoning models: left alone they emit ~10k hidden
+# "thinking" tokens before the JSON (standup_transcript.txt: 122-173s vs
+# 11.6s with thinking off, same items, all quotes verified). That alone
+# pushed real meetings past the desktop app's timeout. The extraction task
+# is reading + labelling, not multi-step reasoning, so thinking is off by
+# default; set LLM_THINKING=on to restore it. vLLM ignores template kwargs
+# a model doesn't use, so this is harmless for non-qwen models.
+THINKING_ENABLED = os.getenv("LLM_THINKING", "off").strip().lower() in {"1", "on", "true", "yes"}
+EXTRA_BODY = {"chat_template_kwargs": {"enable_thinking": THINKING_ENABLED}}
+
+
+async def _chat_json(messages: list[dict]) -> str:
+    """One chat turn constrained to a JSON object; shared by both agents."""
+    response = await client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=messages,
+        response_format={"type": "json_object"},
+        extra_body=EXTRA_BODY,
+    )
+    choice = response.choices[0]
+    if choice.finish_reason == "length":
+        print("[reason] WARNING: model hit its output token limit; the JSON is likely truncated")
+    return choice.message.content or ""
+
 # The persona + core instruction. Every rule here exists to push the
 # model toward under-classifying rather than over-claiming CONFIRMED:
 # a missed action item just gets noticed by a human later, but a
@@ -73,8 +97,13 @@ IMPORTANT RULES:
    three categories, choose the LOWER-confidence category (TENTATIVE, \
    DISCUSSED_ONLY, or NEEDS_INFO). Never guess CONFIRMED to be helpful.
 2. The "quote" field for every item MUST be copied verbatim, word-for-word, \
-   from the transcript you were given. Do not paraphrase, shorten, or \
-   combine text from different parts of the transcript into one quote.
+   from the transcript you were given. It must be ONE unbroken span of text \
+   from ONE line (one speaker turn). Code checks it with an exact substring \
+   match, so: never join two lines, never use "..." to bridge a gap, and \
+   never skip a word in the middle (e.g. a "Thanks." or "Okay,") - if you \
+   don't want a leading word, start your quote after it instead. If the \
+   commitment is spread over several lines, quote only the single line \
+   that best shows it. Leave out the speaker name and timestamp.
 3. Only fill in "owner" or "deadline" if they were actually stated in the \
    transcript. Do not infer a deadline like "by the next meeting" unless \
    that phrase (or an equivalent explicit statement) is actually in the text.
@@ -129,10 +158,10 @@ def parse_classification_response(raw_text: str) -> list[dict]:
 
 async def classify_transcript(transcript_text: str) -> list[dict]:
     """Send a transcript to the NRP model and return parsed candidate items."""
-    print(f"[reason] sending transcript to model='{MODEL_NAME}' for classification")
-    response = await client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
+    print(f"[reason] sending transcript to model='{MODEL_NAME}' for classification "
+          f"(thinking {'on' if THINKING_ENABLED else 'off'})")
+    raw_text = await _chat_json(
+        [
             {"role": "system", "content": SYSTEM_PROMPT},
             {
                 "role": "user",
@@ -144,21 +173,14 @@ async def classify_transcript(transcript_text: str) -> list[dict]:
                     f"TRANSCRIPT:\n{transcript_text}"
                 ),
             },
-        ],
-        response_format={"type": "json_object"},
+        ]
     )
-    raw_text = response.choices[0].message.content
     return parse_classification_response(raw_text)
 
 
 async def complete_json(messages: list[dict]) -> str:
     """One chat turn that must return a JSON object (used by the Resolver agent)."""
-    response = await client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=messages,
-        response_format={"type": "json_object"},
-    )
-    return response.choices[0].message.content
+    return await _chat_json(messages)
 
 
 async def _smoke_test():
@@ -167,6 +189,7 @@ async def _smoke_test():
     response = await client.chat.completions.create(
         model=MODEL_NAME,
         messages=[{"role": "user", "content": "Reply with exactly: NRP connection OK"}],
+        extra_body=EXTRA_BODY,
     )
     print(f"[reason] model replied: {response.choices[0].message.content}")
 

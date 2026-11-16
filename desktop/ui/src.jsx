@@ -15,7 +15,9 @@ import {
   Mic,
   Plus,
   Search,
+  Send,
   Settings,
+  SquareKanban,
   ShieldCheck,
   Square,
   Trash2,
@@ -96,6 +98,7 @@ function App() {
   const [newTitle, setNewTitle] = useState("");
   const [newTranscript, setNewTranscript] = useState("");
   const [settings, setSettings] = useState(null);
+  const [jira, setJira] = useState(null);
   const [key, setKey] = useState("");
   const [clearKey, setClearKey] = useState(false);
   const [recording, setRecording] = useState(null);
@@ -118,6 +121,13 @@ function App() {
       ),
     );
     setSelected(value.id);
+  }
+
+  // Jira status only reads .env; a failure just leaves the button disabled.
+  function refreshJira() {
+    api.jiraStatus().then(setJira, () =>
+      setJira({ configured: false, missing: [], serverInstalled: false }),
+    );
   }
 
   async function task(label, action) {
@@ -143,6 +153,7 @@ function App() {
       setSettings(connection);
       if (history.length) setSelected(history[0].id);
     });
+    refreshJira();
   }, []);
 
   useEffect(() => {
@@ -227,6 +238,7 @@ function App() {
   const eligible = meeting?.items.filter((item) => item.eligible) || [];
   const approved =
     meeting?.items.filter((item) => item.decision === "approved") || [];
+  const jiraPending = approved.filter((item) => item.eligible && !item.jiraKey);
   const visibleItems =
     meeting?.items.filter(
       (item) =>
@@ -243,7 +255,7 @@ function App() {
             <AudioLines size={25} />
           </span>
           <div>
-            <strong>Team6</strong>
+            <strong>Minutely</strong>
             <span>MEETING WORKSPACE</span>
           </div>
         </div>
@@ -320,6 +332,7 @@ function App() {
               setKey("");
               setClearKey(false);
               setModal("settings");
+              refreshJira();
             }}
           >
             <Settings size={17} /> Connections
@@ -446,6 +459,42 @@ function App() {
                 >
                   <Download size={17} /> Export{" "}
                   {approved.length > 0 && `(${approved.length})`}
+                </button>
+                <button
+                  disabled={
+                    locked || !jiraPending.length || editing || !jira?.configured
+                  }
+                  title={
+                    !jira?.configured
+                      ? "Set up Jira in Connections first"
+                      : jiraPending.length
+                        ? `Create ${jiraPending.length} Jira issue(s) in ${jira.project}`
+                        : "Approve items to send them to Jira"
+                  }
+                  onClick={() =>
+                    task("Creating Jira issues", async () => {
+                      const value = await api.sendToJira(meeting.id);
+                      if (!value) return;
+                      upsert(value);
+                      const sent = value.items.filter(
+                        (item) => item.jiraKey && jiraPending.some((p) => p.id === item.id),
+                      );
+                      const failed = value.items.filter(
+                        (item) => item.jiraError && jiraPending.some((p) => p.id === item.id),
+                      );
+                      if (failed.length)
+                        setError(
+                          `${failed.length} item(s) were not created in Jira: ${failed[0].jiraError}`,
+                        );
+                      if (sent.length)
+                        setNotice(
+                          `Created in Jira: ${sent.map((item) => item.jiraKey).join(", ")}`,
+                        );
+                    })
+                  }
+                >
+                  <Send size={17} /> Send to Jira{" "}
+                  {jiraPending.length > 0 && `(${jiraPending.length})`}
                 </button>
                 <IconButton
                   label="Delete meeting"
@@ -704,6 +753,21 @@ function App() {
                       )}
                       {!item.eligible && (
                         <p className="small muted">{item.reason}</p>
+                      )}
+                      {item.jiraKey && (
+                        <p className="jira-status">
+                          <SquareKanban size={14} /> In Jira as{" "}
+                          <strong>{item.jiraKey}</strong>
+                          {" - "}
+                          {item.jiraAssignee
+                            ? `assigned to ${item.jiraAssignee}`
+                            : "unassigned (owner is not a member of the Jira project)"}
+                        </p>
+                      )}
+                      {!item.jiraKey && item.jiraError && (
+                        <p className="jira-status failed">
+                          <SquareKanban size={14} /> Jira: {item.jiraError}
+                        </p>
                       )}
                       <div className="decision-row">
                         <span className="small">
@@ -979,6 +1043,39 @@ function App() {
               </button>
             </div>
           </form>
+          <section className="jira-connection">
+            <div className="connection-heading">
+              <SquareKanban size={21} />
+              <h3>Jira task assignment</h3>
+              <span className={`badge ${jira?.configured ? "CONFIRMED" : ""}`}>
+                {jira?.configured ? `Connected - ${jira.project}` : "Not configured"}
+              </span>
+            </div>
+            {jira?.configured ? (
+              <p className="small muted">
+                Approved items are created in {jira.project} on {jira.site} and
+                assigned to their owners. Settings live in the project .env.
+              </p>
+            ) : (
+              <div className="privacy-notice">
+                {jira?.missing?.length > 0 && (
+                  <>
+                    Add these to the project <code>.env</code>, then restart the
+                    app: <strong>{jira.missing.join(", ")}</strong>.{" "}
+                  </>
+                )}
+                {jira && !jira.serverInstalled && (
+                  <>
+                    Install the Jira MCP server:{" "}
+                    <code>python -m venv .venv-jira</code> then{" "}
+                    <code>.venv-jira/Scripts/pip install mcp-atlassian==0.24.6</code>.
+                  </>
+                )}{" "}
+                See the README section "Jira task assignment" for where to
+                find each value.
+              </div>
+            )}
+          </section>
         </Modal>
       )}
     </div>

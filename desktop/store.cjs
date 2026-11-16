@@ -131,6 +131,25 @@ class MeetingStore {
     return this.save(meeting);
   }
 
+  // Approved items not yet in Jira (or whose last attempt failed).
+  jiraPending(id) {
+    return this.export(id).items.filter((item) => !item.jiraKey);
+  }
+
+  // Record each item's Jira key (or the error) so it is never sent twice.
+  setJiraResults(id, results) {
+    if (!Array.isArray(results)) throw new Error("Invalid Jira response.");
+    const meeting = this.read(id);
+    for (const result of results) {
+      const item = meeting.items.find((candidate) => candidate.id === result?.id);
+      if (!item) continue;
+      item.jiraKey = typeof result.key === "string" ? result.key.slice(0, 40) : undefined;
+      item.jiraAssignee = typeof result.assignee === "string" ? result.assignee.slice(0, 200) : undefined;
+      item.jiraError = typeof result.error === "string" ? result.error.slice(0, 300) : undefined;
+    }
+    return this.save(meeting);
+  }
+
   export(id) {
     const meeting = this.read(id);
     return {

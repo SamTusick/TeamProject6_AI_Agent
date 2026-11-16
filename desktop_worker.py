@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import json
+import os
 import sys
 
 from verify import eligibility_reason, is_eligible, quote_found_in_transcript
@@ -52,9 +53,34 @@ def main() -> None:
             result = asyncio.run(process(request))
         print(json.dumps(result))
     except Exception as error:
-        print(json.dumps({"error": "Analysis failed. Check NRP settings, network access, and model availability.",
-                          "type": type(error).__name__}))
+        print(json.dumps({"error": describe_error(error), "type": type(error).__name__}))
         sys.exit(1)
+
+
+def describe_error(error: Exception) -> str:
+    """Turn a worker failure into a message the desktop UI can act on.
+
+    The old blanket "check NRP settings" text made a slow model, a bad key
+    and an empty extraction indistinguishable. Messages never include the
+    API key: openai exceptions carry only status and server text.
+    """
+    import openai
+
+    model = os.getenv("MODEL_NAME", "qwen3")
+    if isinstance(error, ValueError):
+        return str(error)
+    if isinstance(error, openai.APITimeoutError):
+        return (f"Model '{model}' did not answer within NRP_TIMEOUT_S. Try again, or set "
+                "MODEL_NAME to a faster model in .env.")
+    if isinstance(error, openai.AuthenticationError):
+        return "NRP rejected the API key (HTTP 401). Check NRP_API_KEY in .env."
+    if isinstance(error, openai.NotFoundError):
+        return f"NRP does not serve model '{model}'. Check MODEL_NAME in .env."
+    if isinstance(error, openai.APIConnectionError):
+        return "Could not reach NRP. Check NRP_BASE_URL and your network connection."
+    if isinstance(error, openai.APIStatusError):
+        return f"NRP returned HTTP {error.status_code} for model '{model}': {str(error)[:200]}"
+    return f"Analysis failed ({type(error).__name__}): {str(error)[:200]}"
 
 
 if __name__ == "__main__":

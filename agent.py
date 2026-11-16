@@ -14,9 +14,10 @@ Pipeline:
     [confirm]     human approves/rejects each eligible item in the CLI
     [tool call]   approved items written via the MCP filesystem server
     [tool result] written file read back via the same server, printed
+    [jira]        with --jira, approved items become Jira issues assigned to their owner
     [output]      summary of what was written, rejected, or flagged
 
-Not implemented: live meeting join, Otter integration, Jira/Google Calendar writes.
+Not implemented: live meeting join, Otter integration, Google Calendar writes.
 """
 
 import asyncio
@@ -93,7 +94,8 @@ def confirm_items(eligible: list[dict], approve_all: bool, memory: MeetingMemory
     return approved
 
 
-async def run(transcript_path: str, approve_all: bool, memory: MeetingMemory | None = None) -> dict:
+async def run(transcript_path: str, approve_all: bool, memory: MeetingMemory | None = None,
+              jira: bool = False) -> dict:
     """Run the full pipeline. Returns a dict with every bucket of items
     (not just approved) so callers - like the test runner - can check
     classification outcomes even for items that were never written.
@@ -127,6 +129,17 @@ async def run(transcript_path: str, approve_all: bool, memory: MeetingMemory | N
         added = memory.remember(approved, meeting=Path(transcript_path).name)
         print(f"[memory] stored {added} new item(s) for future meetings ({memory.path})")
 
+    jira_results = []
+    if jira and approved:
+        from jira_client import JiraConfigError, assign_items_in_jira
+        try:
+            jira_results = await assign_items_in_jira(approved, meeting=Path(transcript_path).name)
+        except JiraConfigError as exc:
+            print(f"[jira] skipped - {exc}")
+        for r in jira_results:
+            status = r["key"] if r["key"] else f"FAILED ({r['error']})"
+            print(f"[jira] {r['title']}: {status}, assignee={r['assignee'] or 'unassigned'}")
+
     return {
         "items": items,
         "eligible": eligible,
@@ -134,18 +147,21 @@ async def run(transcript_path: str, approve_all: bool, memory: MeetingMemory | N
         "rejected": rejected,
         "approved": approved,
         "handoffs": handoffs,
+        "jira": jira_results,
     }
 
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print("Usage: python agent.py <path-to-transcript.txt> [--approve-all]")
+        print("Usage: python agent.py <path-to-transcript.txt> [--approve-all] [--jira]")
         sys.exit(1)
 
     transcript_path = sys.argv[1]
     approve_all = "--approve-all" in sys.argv[2:]
 
-    asyncio.run(run(transcript_path, approve_all))
+    jira = "--jira" in sys.argv[2:]
+
+    asyncio.run(run(transcript_path, approve_all, jira=jira))
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ chapter_03
 __pycache__/
 *.pyc
 .venv/
+.venv-jira/
 venv/
 node_modules/
 desktop-dist/
@@ -12,6 +13,7 @@ test-artifacts/
 
 # MCP server subprocess stderr (see mcp_session() in mcp_client.py).
 mcp_server.log
+jira_mcp_server.log
 
 # MCP filesystem server's sandboxed output directory.
 # Keep the folder itself (via output/.gitkeep) but ignore generated content.

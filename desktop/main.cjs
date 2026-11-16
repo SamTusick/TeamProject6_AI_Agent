@@ -18,6 +18,7 @@ const {
   runAnalysis,
   runLocalTranscription,
   transcribeWispr,
+  runJira,
 } = require("./services.cjs");
 
 const root = path.resolve(__dirname, "..");
@@ -153,6 +154,39 @@ function registerHandlers() {
     if (picked.canceled) return false;
     fs.writeFileSync(picked.filePath, JSON.stringify(data, null, 2));
     return true;
+  });
+  handle("jira:status", () => runJira(root, { action: "status" }));
+  handle("meetings:jira", async (id) => {
+    available(id);
+    const meeting = store.read(id);
+    const items = store.jiraPending(id);
+    if (!items.length)
+      throw new Error("Every approved item is already in Jira.");
+    const status = await runJira(root, { action: "status" });
+    if (!status.configured)
+      throw new Error(
+        status.missing.length
+          ? `Jira is not set up. Add ${status.missing.join(", ")} to the project .env, then restart the app.`
+          : "The Jira MCP server (mcp-atlassian) is not installed. See Connections for setup.",
+      );
+    if (
+      !(await consent(
+        `Create ${items.length} Jira issue${items.length === 1 ? "" : "s"}?`,
+        `Approved items (title, owner, deadline, source quote and reasoning) will be created in project ${status.project} on ${status.site} and assigned to their owners. Owners that don't match a Jira user are left unassigned.`,
+      ))
+    )
+      return null;
+    busy.add(id);
+    try {
+      const { results } = await runJira(root, {
+        action: "create",
+        meeting: meeting.title,
+        items,
+      });
+      return store.setJiraResults(id, results);
+    } finally {
+      busy.delete(id);
+    }
   });
   handle("meetings:delete", async (id) => {
     available(id);
