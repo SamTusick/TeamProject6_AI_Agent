@@ -2,11 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import {
-  Activity,
   AudioLines,
-  Check,
-  CheckCheck,
-  CircleHelp,
   Download,
   FileText,
   FolderOpen,
@@ -17,11 +13,10 @@ import {
   Search,
   Send,
   Settings,
-  SquareKanban,
   ShieldCheck,
   Square,
+  SquareKanban,
   Trash2,
-  Undo2,
   X,
 } from "lucide-react";
 import "@fontsource/ibm-plex-sans/400.css";
@@ -31,22 +26,12 @@ import "@fontsource/ibm-plex-mono/400.css";
 import "./style.css";
 import { startRecorder } from "./recorder.js";
 import { toWavChunks } from "./wav.js";
+import { IconButton } from "./IconButton.jsx";
+import { findQuote, revealRange } from "./evidence.js";
+import { TranscriptPane } from "./TranscriptPane.jsx";
+import { ReviewPane } from "./ReviewPane.jsx";
 
 const api = window.meetings;
-const labels = {
-  CONFIRMED: "Confirmed",
-  TENTATIVE: "Tentative",
-  DISCUSSED_ONLY: "Discussed",
-  NEEDS_INFO: "Needs info",
-};
-
-function IconButton({ label, children, ...props }) {
-  return (
-    <button className="icon-button" title={label} aria-label={label} {...props}>
-      {children}
-    </button>
-  );
-}
 
 function Modal({ title, close, error, busy, children }) {
   const ref = useRef(null);
@@ -223,16 +208,9 @@ function App() {
   function showEvidence(item) {
     const area = transcriptRef.current;
     if (!area) return;
-    area.focus();
-    const escaped = item.quote
-      .trim()
-      .split(/\s+/u)
-      .map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-      .join("\\s+");
-    if (!escaped) return;
-    const match = new RegExp(escaped, "iu").exec(meeting.transcript);
-    if (match)
-      area.setSelectionRange(match.index, match.index + match[0].length);
+    const range = findQuote(item.quote, area.value);
+    if (range) revealRange(area, range);
+    else setNotice("Couldn't find that quote in the transcript.");
   }
 
   const eligible = meeting?.items.filter((item) => item.eligible) || [];
@@ -532,314 +510,89 @@ function App() {
                 <span>Approved</span>
               </div>
             </section>
-            <div className="workspace-grid">
-              <section className="transcript-pane">
-                <div className="pane-heading">
-                  <h2>
-                    <FileText size={18} /> Transcript
-                  </h2>
-                  <button
-                    className="text-button"
-                    disabled={locked || editing}
-                    onClick={() => {
-                      setTitle(meeting.title);
-                      setDraft(meeting.transcript);
-                      setEditing(true);
-                    }}
-                  >
-                    Edit
-                  </button>
-                </div>
-                {meeting.audio && !recording && (
-                  <div className="audio-tools">
-                    {!audioUrl ? (
-                      <button
-                        disabled={locked}
-                        onClick={() =>
-                          task("Loading recording", async () => {
-                            const bytes = await api.audio(meeting.id);
-                            if (bytes)
-                              setAudioUrl(
-                                URL.createObjectURL(
-                                  new Blob([bytes], { type: "audio/webm" }),
-                                ),
-                              );
-                          })
-                        }
-                      >
-                        <Headphones size={16} /> Play recording
-                      </button>
-                    ) : (
-                      <audio controls src={audioUrl} />
-                    )}
-                    <button
-                      disabled={locked || editing}
-                      title="Whisper base running on this device; no API key required"
-                      onClick={() =>
-                        task("Running local Whisper transcription", async () => {
-                          const result = await api.transcribe(meeting.id);
-                          if (result) {
-                            upsert(result);
-                            setNotice("Transcript ready for review.");
-                          }
-                        })
-                      }
-                    >
-                      <AudioLines size={16} /> Transcribe locally (Whisper)
-                    </button>
-                    <button
-                      disabled={locked || editing || !settings?.hasWisprKey}
-                      title={
-                        settings?.hasWisprKey
-                          ? "Upload the recording to Wispr Flow for transcription"
-                          : "Add a Wispr Flow API key in Connections first"
-                      }
-                      onClick={() =>
-                        task("Transcribing with Wispr Flow", async () => {
-                          const bytes = await api.audio(meeting.id);
-                          if (!bytes) throw new Error("This meeting has no recording.");
-                          const chunks = await toWavChunks(bytes);
-                          const result = await api.transcribeWispr(meeting.id, chunks);
-                          if (result) {
-                            upsert(result);
-                            setNotice("Wispr Flow transcript ready for review.");
-                          }
-                        })
-                      }
-                    >
-                      <AudioLines size={16} /> Transcribe with Wispr Flow
-                    </button>
-                  </div>
-                )}
-                {editing && (
-                  <label className="edit-title">
-                    Meeting title
-                    <input
-                      value={title}
-                      maxLength={160}
-                      onChange={(event) => setTitle(event.target.value)}
-                    />
-                  </label>
-                )}
-                <textarea
-                  ref={transcriptRef}
-                  aria-label="Meeting transcript"
-                  className="transcript"
-                  readOnly={!editing}
-                  placeholder="No transcript yet."
-                  value={editing ? draft : meeting.transcript}
-                  maxLength={100000}
-                  onChange={(event) => setDraft(event.target.value)}
-                />
-                <div className="transcript-footer">
-                  {(editing
-                    ? draft
-                    : meeting.transcript
-                  ).length.toLocaleString()}{" "}
-                  characters
-                  {editing && (
-                    <div className="toolbar">
-                      <button
-                        disabled={locked}
-                        onClick={() => setEditing(false)}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className="primary"
-                        disabled={locked || !title.trim()}
-                        onClick={() =>
-                          task("Saving transcript", async () => {
-                            upsert(await api.update(meeting.id, title, draft));
-                            setEditing(false);
-                          })
-                        }
-                      >
-                        Save changes
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </section>
-              <section className="review-pane">
-                <div className="pane-heading">
-                  <h2>
-                    <CheckCheck size={19} /> Action review
-                  </h2>
-                  <button
-                    className="primary"
-                    disabled={locked || editing || !meeting.transcript.trim()}
-                    onClick={() =>
-                      task("Analyzing transcript", async () =>
-                        upsert(await api.analyze(meeting.id)),
-                      )
+            <div className="workspace-grid" key={meeting.id}>
+              <TranscriptPane
+                meeting={meeting}
+                locked={locked}
+                editing={editing}
+                showAudioTools={Boolean(meeting.audio && !recording)}
+                audioUrl={audioUrl}
+                hasWisprKey={Boolean(settings?.hasWisprKey)}
+                title={title}
+                draft={draft}
+                transcriptRef={transcriptRef}
+                onEdit={() => {
+                  setTitle(meeting.title);
+                  setDraft(meeting.transcript);
+                  setEditing(true);
+                }}
+                onCancel={() => setEditing(false)}
+                onSave={() =>
+                  task("Saving transcript", async () => {
+                    upsert(await api.update(meeting.id, title, draft));
+                    setEditing(false);
+                  })
+                }
+                onTitleChange={setTitle}
+                onDraftChange={setDraft}
+                onLoadAudio={() =>
+                  task("Loading recording", async () => {
+                    const bytes = await api.audio(meeting.id);
+                    if (bytes)
+                      setAudioUrl(
+                        URL.createObjectURL(
+                          new Blob([bytes], { type: "audio/webm" }),
+                        ),
+                      );
+                  })
+                }
+                onTranscribeLocal={() =>
+                  task("Running local Whisper transcription", async () => {
+                    const result = await api.transcribe(meeting.id);
+                    if (result) {
+                      upsert(result);
+                      setNotice("Transcript ready for review.");
                     }
-                  >
-                    <Activity size={16} />{" "}
-                    {meeting.analyzed ? "Reanalyze" : "Analyze"}
-                  </button>
-                </div>
-                <div
-                  className="tabs"
-                  role="tablist"
-                  aria-label="Action filters"
-                >
-                  {[
-                    ["all", "All items"],
-                    ["eligible", "Eligible"],
-                    ["questions", "Needs info"],
-                  ].map(([value, label]) => (
-                    <button
-                      key={value}
-                      role="tab"
-                      aria-selected={filter === value}
-                      onClick={() => setFilter(value)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <div className="items">
-                  {!visibleItems.length && (
-                    <div className="empty-items">
-                      <CircleHelp size={28} />
-                      <h3>
-                        {meeting.analyzed
-                          ? "No matching items"
-                          : "Awaiting analysis"}
-                      </h3>
-                    </div>
-                  )}
-                  {visibleItems.map((item) => (
-                    <article
-                      className={`action-item ${item.decision}`}
-                      key={item.id}
-                    >
-                      <div className="item-meta">
-                        <span className={`badge ${item.classification}`}>
-                          {labels[item.classification] || item.classification}
-                        </span>
-                        <span
-                          className={item.verified ? "verified" : "unverified"}
-                        >
-                          {item.verified ? (
-                            <ShieldCheck size={14} />
-                          ) : (
-                            <CircleHelp size={14} />
-                          )}
-                          {item.verified
-                            ? "Quote matched"
-                            : "Quote not verified"}
-                        </span>
-                      </div>
-                      <h3>{item.title}</h3>
-                      <div className="ownership">
-                        <span>{item.owner || "Owner missing"}</span>
-                        <span>{item.deadline || "Deadline missing"}</span>
-                      </div>
-                      <button
-                        className="quote"
-                        onClick={() => showEvidence(item)}
-                        title="Find source quote"
-                      >
-                        "{item.quote || "No source quote"}"
-                      </button>
-                      <p className="reasoning">{item.reasoning}</p>
-                      {item.clarifying_question && (
-                        <p className="question">
-                          <CircleHelp size={16} />
-                          {item.clarifying_question}
-                        </p>
-                      )}
-                      {!item.eligible && (
-                        <p className="small muted">{item.reason}</p>
-                      )}
-                      {item.jiraKey && (
-                        <p className="jira-status">
-                          <SquareKanban size={14} /> In Jira as{" "}
-                          <strong>{item.jiraKey}</strong>
-                          {" - "}
-                          {item.jiraAssignee
-                            ? `assigned to ${item.jiraAssignee}`
-                            : "unassigned (owner is not a member of the Jira project)"}
-                        </p>
-                      )}
-                      {!item.jiraKey && item.jiraError && (
-                        <p className="jira-status failed">
-                          <SquareKanban size={14} /> Jira: {item.jiraError}
-                        </p>
-                      )}
-                      <div className="decision-row">
-                        <span className="small">
-                          {item.decision === "pending"
-                            ? "Not reviewed"
-                            : item.decision === "approved"
-                              ? "Approved"
-                              : "Rejected"}
-                        </span>
-                        <div className="toolbar">
-                          {item.decision !== "pending" ? (
-                            <IconButton
-                              label={`Undo decision: ${item.title}`}
-                              disabled={locked || editing}
-                              onClick={() =>
-                                task("Updating decision", async () =>
-                                  upsert(
-                                    await api.decide(
-                                      meeting.id,
-                                      item.id,
-                                      "pending",
-                                    ),
-                                  ),
-                                )
-                              }
-                            >
-                              <Undo2 size={17} />
-                            </IconButton>
-                          ) : (
-                            <>
-                              <IconButton
-                                label={`Reject: ${item.title}`}
-                                disabled={locked || editing}
-                                onClick={() =>
-                                  task("Saving decision", async () =>
-                                    upsert(
-                                      await api.decide(
-                                        meeting.id,
-                                        item.id,
-                                        "rejected",
-                                      ),
-                                    ),
-                                  )
-                                }
-                              >
-                                <X size={17} />
-                              </IconButton>
-                              <button
-                                className="approve"
-                                disabled={locked || editing || !item.eligible}
-                                onClick={() =>
-                                  task("Saving approval", async () =>
-                                    upsert(
-                                      await api.decide(
-                                        meeting.id,
-                                        item.id,
-                                        "approved",
-                                      ),
-                                    ),
-                                  )
-                                }
-                              >
-                                <Check size={16} /> Approve
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
+                  })
+                }
+                onTranscribeWispr={() =>
+                  task("Transcribing with Wispr Flow", async () => {
+                    const bytes = await api.audio(meeting.id);
+                    if (!bytes) throw new Error("This meeting has no recording.");
+                    const chunks = await toWavChunks(bytes);
+                    const result = await api.transcribeWispr(meeting.id, chunks);
+                    if (result) {
+                      upsert(result);
+                      setNotice("Wispr Flow transcript ready for review.");
+                    }
+                  })
+                }
+              />
+              <ReviewPane
+                meeting={meeting}
+                items={visibleItems}
+                filter={filter}
+                locked={locked}
+                editing={editing}
+                onFilterChange={setFilter}
+                onAnalyze={() =>
+                  task("Analyzing transcript", async () =>
+                    upsert(await api.analyze(meeting.id)),
+                  )
+                }
+                onDecide={(item, decision) =>
+                  task(
+                    decision === "pending"
+                      ? "Updating decision"
+                      : decision === "approved"
+                        ? "Saving approval"
+                        : "Saving decision",
+                    async () =>
+                      upsert(await api.decide(meeting.id, item.id, decision)),
+                  )
+                }
+                onShowEvidence={showEvidence}
+              />
             </div>
           </>
         )}
