@@ -6,6 +6,15 @@ const path = require("node:path");
 const assert = require("node:assert/strict");
 const { MeetingStore } = require("../desktop/store.cjs");
 
+// Answer the in-app confirmation dialog (replaces the old native message box).
+async function confirmDialog(page, button, { title } = {}) {
+  const dialog = page.locator("dialog.confirm-dialog");
+  await expect(dialog).toBeVisible();
+  if (title) await expect(dialog.getByRole("heading")).toContainText(title);
+  await dialog.getByRole("button", { name: button, exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+}
+
 async function main() {
   const data = fs.mkdtempSync(path.join(os.tmpdir(), "team6-e2e-"));
   const artifacts = path.resolve("test-artifacts");
@@ -133,7 +142,6 @@ async function main() {
     );
 
     await application.evaluate(({ dialog }, directory) => {
-      dialog.showMessageBox = async () => ({ response: 1 });
       dialog.showSaveDialog = async () => ({
         canceled: false,
         filePath: `${directory}/approved.json`,
@@ -197,6 +205,7 @@ async function main() {
     await page
       .getByRole("button", { name: "Start recording", exact: true })
       .click();
+    await confirmDialog(page, "Start recording", { title: "Start recording" });
     await expect(page.getByText("Recording", { exact: true })).toBeVisible();
     await expect
       .poll(
@@ -244,19 +253,11 @@ async function main() {
     await page.evaluate(({ id }) => window.meetings.update(id, "Synthetic audio test", "Keep this transcript."), recordedMeeting);
     const beforeTranscription = store.read(recordedMeeting.id);
     await page.reload();
-    await application.evaluate(({ dialog }) => {
-      dialog.showMessageBox = async (_window, options) => {
-        if (!options.message.includes("local transcription")) throw new Error("Expected local transcription consent");
-        return { response: 1 };
-      };
-    });
     await page.getByRole("button", { name: "Transcribe locally (Whisper)", exact: true }).click();
+    await confirmDialog(page, "Transcribe", { title: "Whisper" });
     await expect(page.getByRole("alert")).toContainText("returned no words", { timeout: 180000 });
     assert.deepEqual(store.read(recordedMeeting.id), beforeTranscription);
     await expect(page.getByRole("button", { name: "Transcribe locally (Whisper)", exact: true })).toBeEnabled();
-    await application.evaluate(({ dialog }) => {
-      dialog.showMessageBox = async () => ({ response: 1 });
-    });
     console.log("PASS: real local checkpoint runs without a speech key; blank output preserves transcript and releases busy state");
 
     await application.evaluate(({ BrowserWindow }) =>
@@ -280,6 +281,15 @@ async function main() {
     await page
       .getByRole("button", { name: "Delete meeting", exact: true })
       .click();
+    await confirmDialog(page, "Cancel", { title: "Delete this meeting?" });
+    assert.ok(
+      store.list().some((value) => value.title === "Synthetic audio test"),
+      "Cancelling the confirmation must keep the meeting",
+    );
+    await page
+      .getByRole("button", { name: "Delete meeting", exact: true })
+      .click();
+    await confirmDialog(page, "Delete meeting", { title: "Delete this meeting?" });
     await expect(
       page.getByRole("heading", { name: "Your meeting workspace" }),
     ).toBeVisible();

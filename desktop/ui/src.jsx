@@ -30,6 +30,7 @@ import { IconButton } from "./IconButton.jsx";
 import { findQuote, revealRange } from "./evidence.js";
 import { TranscriptPane } from "./TranscriptPane.jsx";
 import { ReviewPane } from "./ReviewPane.jsx";
+import { ConfirmDialog } from "./ConfirmDialog.jsx";
 
 const api = window.meetings;
 
@@ -89,6 +90,7 @@ function App() {
   const [recording, setRecording] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [audioUrl, setAudioUrl] = useState("");
+  const [consents, setConsents] = useState([]);
   const controller = useRef(null);
   const canvas = useRef(null);
   const transcriptRef = useRef(null);
@@ -140,6 +142,25 @@ function App() {
     });
     refreshJira();
   }, []);
+
+  // Confirmations requested by the main process, shown one at a time.
+  useEffect(() => {
+    const stopConsent = api.onConsent((request) =>
+      setConsents((previous) => [...previous, request]),
+    );
+    const stopNotice = api.onNotice((message) => setNotice(message));
+    return () => {
+      stopConsent();
+      stopNotice();
+    };
+  }, []);
+
+  function answerConsent(request, approved) {
+    setConsents((previous) =>
+      previous.filter((value) => value.id !== request.id),
+    );
+    api.answerConsent(request.id, approved).catch(() => {});
+  }
 
   useEffect(() => {
     setEditing(false);
@@ -601,6 +622,14 @@ function App() {
           <span>Local speech / Whisper base</span>
         </footer>
       </main>
+
+      {consents[0] && (
+        <ConfirmDialog
+          key={consents[0].id}
+          request={consents[0]}
+          onAnswer={(approved) => answerConsent(consents[0], approved)}
+        />
+      )}
 
       {modal === "new" && (
         <Modal

@@ -83,19 +83,44 @@ function publicSettings() {
   };
 }
 
-async function consent(message, detail) {
-  const result = await dialog.showMessageBox(window, {
-    type: "question",
-    message,
-    detail,
-    buttons: ["Cancel", "Continue"],
-    defaultId: 0,
-    cancelId: 0,
+// Confirmations are shown by the app's own UI (styled dialog) rather than a
+// native Windows message box. Main still blocks on the answer before acting.
+let consentSeq = 0;
+const pendingConsent = new Map();
+
+function consent(message, detail, { confirm = "Continue", danger = false } = {}) {
+  return new Promise((resolve) => {
+    const id = ++consentSeq;
+    pendingConsent.set(id, resolve);
+    window.webContents.send("consent:request", {
+      id,
+      message,
+      detail,
+      confirm,
+      danger,
+    });
   });
-  return result.response === 1;
+}
+
+function settleConsent(id, approved) {
+  const resolve = pendingConsent.get(id);
+  if (!resolve) return false;
+  pendingConsent.delete(id);
+  resolve(approved === true);
+  return true;
+}
+
+// A reload or crash drops the UI that would answer; treat open requests as cancelled.
+function cancelAllConsent() {
+  for (const id of [...pendingConsent.keys()]) settleConsent(id, false);
 }
 
 function registerHandlers() {
+  handle("consent:answer", (id, approved) => {
+    if (!settleConsent(id, approved))
+      throw new Error("That confirmation is no longer pending.");
+    return true;
+  });
   handle("meetings:list", () => store.list());
   handle("meetings:create", (title, transcript) =>
     store.create(title, transcript),
@@ -132,6 +157,7 @@ function registerHandlers() {
         !(await consent(
           "Send this transcript for analysis?",
           "The transcript will be sent to the NRP/model endpoint configured in your project .env. Only proceed with participant permission. Existing review decisions will be reset.",
+          { confirm: "Analyze" },
         ))
       )
         return null;
@@ -173,6 +199,7 @@ function registerHandlers() {
       !(await consent(
         `Create ${items.length} Jira issue${items.length === 1 ? "" : "s"}?`,
         `Approved items (title, owner, deadline, source quote and reasoning) will be created in project ${status.project} on ${status.site} and assigned to their owners. Owners that don't match a Jira user are left unassigned.`,
+        { confirm: `Create issue${items.length === 1 ? "" : "s"}` },
       ))
     )
       return null;
@@ -194,6 +221,7 @@ function registerHandlers() {
       !(await consent(
         "Delete this meeting?",
         "This permanently deletes its local transcript, recording, and review decisions. Exported copies are not removed.",
+        { confirm: "Delete meeting", danger: true },
       ))
     )
       return false;
@@ -229,6 +257,7 @@ function registerHandlers() {
       !(await consent(
         "Start recording microphone and system audio?",
         "Inform everyone and obtain permission before recording. System audio includes other apps and notifications, not only your call. Audio stays local until you choose Transcribe. No video will be saved.",
+        { confirm: "Start recording" },
       ))
     )
       return null;
@@ -282,6 +311,7 @@ function registerHandlers() {
         !(await consent(
           "Transcribe locally with Whisper?",
           "Audio stays on this device and is transcribed by the open-source Whisper base model. No speech API key is needed; the first run downloads the model (about 150 MB) and can take a few minutes. Accuracy is moderate, so review the text. A nonempty result replaces the current transcript and resets review decisions; a failure leaves both unchanged.",
+          { confirm: "Transcribe" },
         ))
       )
         return null;
@@ -311,6 +341,7 @@ function registerHandlers() {
         !(await consent(
           "Send this recording to Wispr Flow?",
           "Audio is uploaded to Wispr Flow's servers for transcription; their fees and retention policies apply. Only proceed with participant permission. Wispr Flow cleans up speech (removes filler words, resolves self-corrections), so the text is not word-for-word. A nonempty result replaces the current transcript and resets review decisions; a failure leaves both unchanged.",
+          { confirm: "Send to Wispr Flow" },
         ))
       )
         return null;
@@ -360,15 +391,19 @@ app.whenReady().then(async () => {
     },
   });
   window.removeMenu();
+  window.webContents.on("did-start-navigation", (details) => {
+    if (details.isMainFrame && !details.isSameDocument) cancelAllConsent();
+  });
+  window.webContents.on("render-process-gone", cancelAllConsent);
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event) => event.preventDefault());
   window.on("close", (event) => {
     if (recording || busy.size) {
       event.preventDefault();
-      dialog.showMessageBoxSync(window, {
-        message: "Finish recording or wait for processing before closing.",
-        buttons: ["OK"],
-      });
+      window.webContents.send(
+        "app:notice",
+        "Finish recording or wait for processing before closing.",
+      );
     }
   });
   const permissions = session.defaultSession;

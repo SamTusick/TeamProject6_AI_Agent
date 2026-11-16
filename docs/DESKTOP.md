@@ -113,7 +113,10 @@ the app UI no longer exposes it.
 - The renderer loads packaged local assets through a restricted custom scheme,
   with sandboxing and context isolation enabled and Node integration disabled.
   IPC exposes specific operations, validates the sender, and restricts file paths.
-- Recording needs explicit consent, and closing is blocked during recording or
+- Recording, analysis, transcription, Jira creation and deletion each need
+  explicit confirmation. The main process blocks on the answer, but the prompt
+  is an in-app dialog drawn by the renderer (not a native Windows box), so it
+  is only as trustworthy as the renderer. Closing is blocked during recording or
   model processing. Audio chunks are written during recording; a forced process
   termination may leave incomplete audio without usable metadata. Automatic
   crash recovery remains future work.
@@ -134,8 +137,9 @@ npm run test:desktop
 - Playwright launches the real Electron binary with isolated temporary data.
   It checks credential encryption, renderer isolation, review persistence,
   exports, transcript edits, synthetic audio recording/playback, visible waveform
-  pixels, narrow layouts, and renderer exceptions. Native dialogs and capture
-  devices are stubbed in these tests; no real microphone or meeting is recorded.
+  pixels, narrow layouts, and renderer exceptions. Confirmations are answered
+  by clicking the in-app dialog; native file pickers and capture devices are
+  stubbed in these tests; no real microphone or meeting is recorded.
 - Screenshots are generated in ignored `test-artifacts/`.
 - A live service-bridge check has succeeded using a synthetic sentence and the
   configured NRP model. The local speech flow is tested with generated WebM,

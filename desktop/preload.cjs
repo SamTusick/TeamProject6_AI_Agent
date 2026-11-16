@@ -28,4 +28,14 @@ contextBridge.exposeInMainWorld("meetings", {
   transcribe: (id) => invoke("recording:transcribe", id),
   transcribeWispr: (id, chunks) =>
     invoke("recording:transcribeWispr", id, chunks),
+  // Main asks the UI to confirm sensitive actions; the UI replies with answerConsent.
+  onConsent: (callback) => subscribe("consent:request", callback),
+  answerConsent: (id, approved) => invoke("consent:answer", id, approved),
+  onNotice: (callback) => subscribe("app:notice", callback),
 });
+
+function subscribe(channel, callback) {
+  const listener = (_event, payload) => callback(payload);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}

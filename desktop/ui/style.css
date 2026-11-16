@@ -135,3 +135,16 @@ dialog form { display: grid; gap: 18px; }
 .jira-status.failed { color: #a35436; }
 .jira-connection { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 20px; margin-top: 20px; }
 .jira-connection code { font-family: 'IBM Plex Mono', monospace; font-size: 11px; overflow-wrap: anywhere; }
+.confirm-dialog { width: min(460px, calc(100vw - 32px)); padding: 0; overflow: hidden; }
+.confirm-dialog[open] { animation: confirm-in .14s ease-out; }
+.confirm-body { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 22px 20px 20px 22px; }
+.confirm-body h2 { font-size: 17px; line-height: 1.4; font-weight: 600; padding-top: 6px; overflow-wrap: anywhere; }
+.confirm-body p { margin-top: 8px; font-size: 13px; line-height: 1.65; color: var(--muted); overflow-wrap: anywhere; }
+.confirm-body .icon-button { border-color: transparent; background: transparent; color: #7c8780; }
+.confirm-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: #e8f3ec; color: var(--green); }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; background: #f6f8f7; border-top: 1px solid var(--line); }
+.confirm-dialog.danger .confirm-icon { background: #fcece5; color: #b4472f; }
+button.danger-button { background: #b4472f; border-color: #b4472f; color: #fff; }
+button.danger-button:hover:not(:disabled) { background: #973a26; border-color: #973a26; }
+@keyframes confirm-in { from { opacity: 0; transform: translateY(6px) scale(.98); } }
+@media (prefers-reduced-motion: reduce) { .confirm-dialog[open] { animation: none; } }
