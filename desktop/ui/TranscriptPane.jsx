@@ -1,5 +1,5 @@
-import React from "react";
-import { AudioLines, FileText, Headphones } from "lucide-react";
+import React, { useEffect, useRef } from "react";
+import { AudioLines, FileText, Headphones, Link2 } from "lucide-react";
 
 export function TranscriptPane({
   meeting,
@@ -10,7 +10,7 @@ export function TranscriptPane({
   hasWisprKey,
   title,
   draft,
-  transcriptRef,
+  evidence,
   onEdit,
   onCancel,
   onSave,
@@ -21,6 +21,21 @@ export function TranscriptPane({
   onTranscribeWispr,
 }) {
   const text = editing ? draft : meeting.transcript;
+  const sourceRef = useRef(null);
+  useEffect(() => {
+    if (!evidence || editing) return;
+    const source = sourceRef.current;
+    if (!source) return;
+    source.focus({ preventScroll: true });
+    source.scrollIntoView({
+      block: "center",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+  }, [evidence, editing]);
+  let offset = 0;
+  let firstMatch = true;
   return (
     <section className="transcript-pane" aria-label="Transcript">
       <div className="pane-heading">
@@ -35,6 +50,12 @@ export function TranscriptPane({
           Edit
         </button>
       </div>
+      {!editing && (
+        <div className={`transcript-context ${evidence ? "has-evidence" : ""}`} role="status">
+          <Link2 size={15} />
+          <span>{evidence ? `Source for: ${evidence.title}` : "Select an action to find its source here."}</span>
+        </div>
+      )}
       {showAudioTools && (
         <div className="audio-tools">
           {!audioUrl ? (
@@ -74,16 +95,44 @@ export function TranscriptPane({
           />
         </label>
       )}
-      <textarea
-        ref={transcriptRef}
-        aria-label="Meeting transcript"
-        className="transcript"
-        readOnly={!editing}
-        placeholder="No transcript yet."
-        value={text}
-        maxLength={100000}
-        onChange={(event) => onDraftChange(event.target.value)}
-      />
+      {editing ? (
+        <textarea
+          aria-label="Meeting transcript"
+          className="transcript"
+          placeholder="No transcript yet."
+          value={text}
+          maxLength={100000}
+          onChange={(event) => onDraftChange(event.target.value)}
+        />
+      ) : (
+        <div className="transcript-document" role="region" aria-label="Meeting transcript" tabIndex={0}>
+          {!text ? <p className="transcript-placeholder">No transcript yet.</p> : text.split("\n").map((line, index) => {
+            const start = offset;
+            offset += line.length + 1;
+            const from = evidence ? Math.max(0, evidence.start - start) : 0;
+            const to = evidence ? Math.min(line.length, evidence.end - start) : 0;
+            const matched = to > from;
+            const focusTarget = matched && firstMatch;
+            if (matched) firstMatch = false;
+            return (
+              <div className={`transcript-line ${matched ? "highlighted" : ""}`} key={index}>
+                <span className="line-number" aria-hidden="true">{index + 1}</span>
+                <p>
+                  {matched ? (
+                    <>
+                      {line.slice(0, from)}
+                      <mark ref={focusTarget ? sourceRef : undefined} tabIndex={focusTarget ? -1 : undefined}>
+                        {line.slice(from, to)}
+                      </mark>
+                      {line.slice(to)}
+                    </>
+                  ) : line || "\u00a0"}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="transcript-footer">
         {text.length.toLocaleString()} characters
         {editing && (

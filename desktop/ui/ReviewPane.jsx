@@ -1,12 +1,15 @@
 import React from "react";
 import {
   Activity,
+  ArrowUpRight,
+  CalendarDays,
   Check,
   CheckCheck,
   CircleHelp,
   ShieldCheck,
   SquareKanban,
   Undo2,
+  UserRound,
   X,
 } from "lucide-react";
 import { IconButton } from "./IconButton.jsx";
@@ -28,6 +31,7 @@ export function ReviewPane({
   meeting,
   items,
   filter,
+  evidenceItemId,
   locked,
   editing,
   onFilterChange,
@@ -50,6 +54,7 @@ export function ReviewPane({
           <Activity size={16} /> {meeting.analyzed ? "Reanalyze" : "Analyze"}
         </button>
       </div>
+      <p className="review-hint">Click an action to see where it was said.</p>
       <div className="tabs" role="tablist" aria-label="Action filters">
         {filters.map(([value, label]) => (
           <button
@@ -70,7 +75,15 @@ export function ReviewPane({
           </div>
         )}
         {items.map((item) => (
-          <article className={`action-item ${item.decision}`} key={item.id}>
+          <article
+            className={`action-item ${item.decision} ${evidenceItemId === item.id ? "source-selected" : ""}`}
+            key={item.id}
+            onClick={(event) => {
+              if (editing || event.target.closest("button, a, input, textarea")) return;
+              if (!window.getSelection()?.isCollapsed) return;
+              onShowEvidence(item);
+            }}
+          >
             <div className="item-meta">
               <span className={`badge ${item.classification}`}>
                 {labels[item.classification] || item.classification}
@@ -84,13 +97,24 @@ export function ReviewPane({
                 {item.verified ? "Quote matched" : "Quote not verified"}
               </span>
             </div>
-            <h3>{item.title}</h3>
+            <h3>
+              <button
+                className="action-title"
+                disabled={editing}
+                onClick={() => onShowEvidence(item)}
+                aria-label={`View transcript source: ${item.title}`}
+                aria-pressed={evidenceItemId === item.id}
+              >
+                {item.title}
+              </button>
+            </h3>
             <div className="ownership">
-              <span>{item.owner || "Owner missing"}</span>
-              <span>{item.deadline || "Deadline missing"}</span>
+              <span><UserRound size={14} />{item.owner || "Owner missing"}</span>
+              <span><CalendarDays size={14} />{item.deadline || "Deadline missing"}</span>
             </div>
             <button
               className="quote"
+              disabled={editing}
               onClick={() => onShowEvidence(item)}
               title="Find source quote"
             >
@@ -120,13 +144,18 @@ export function ReviewPane({
               </p>
             )}
             <div className="decision-row">
-              <span className="small">
-                {item.decision === "pending"
-                  ? "Not reviewed"
-                  : item.decision === "approved"
-                    ? "Approved"
-                    : "Rejected"}
-              </span>
+              <div className="decision-status">
+                <button className="source-link" disabled={editing} onClick={() => onShowEvidence(item)}>
+                  {evidenceItemId === item.id ? "Viewing source" : "View source"} <ArrowUpRight size={15} />
+                </button>
+                <span className="small">
+                  {item.decision === "pending"
+                    ? "Not reviewed"
+                    : item.decision === "approved"
+                      ? "Approved"
+                      : "Rejected"}
+                </span>
+              </div>
               <div className="toolbar">
                 {item.decision !== "pending" ? (
                   <IconButton

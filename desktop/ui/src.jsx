@@ -27,7 +27,7 @@ import "./style.css";
 import { startRecorder } from "./recorder.js";
 import { toWavChunks } from "./wav.js";
 import { IconButton } from "./IconButton.jsx";
-import { findQuote, revealRange } from "./evidence.js";
+import { findQuote } from "./evidence.js";
 import { TranscriptPane } from "./TranscriptPane.jsx";
 import { ReviewPane } from "./ReviewPane.jsx";
 import { ConfirmDialog } from "./ConfirmDialog.jsx";
@@ -81,6 +81,7 @@ function App() {
   const [notice, setNotice] = useState("");
   const [filter, setFilter] = useState("all");
   const [editing, setEditing] = useState(false);
+  const [evidence, setEvidence] = useState(null);
   const [draft, setDraft] = useState("");
   const [title, setTitle] = useState("");
   const [newTitle, setNewTitle] = useState("");
@@ -96,7 +97,6 @@ function App() {
   const [started, setStarted] = useState(false);
   const controller = useRef(null);
   const canvas = useRef(null);
-  const transcriptRef = useRef(null);
   const meeting = meetings.find((candidate) => candidate.id === selected);
   const locked = Boolean(busy || recording);
 
@@ -172,6 +172,10 @@ function App() {
   }, [selected]);
 
   useEffect(() => {
+    setEvidence(null);
+  }, [selected, meeting?.transcript, editing]);
+
+  useEffect(() => {
     if (!recording) return;
     const timer = setInterval(
       () => setElapsed(Math.floor((Date.now() - recording.started) / 1000)),
@@ -230,11 +234,14 @@ function App() {
   }
 
   function showEvidence(item) {
-    const area = transcriptRef.current;
-    if (!area) return;
-    const range = findQuote(item.quote, area.value);
-    if (range) revealRange(area, range);
-    else setNotice("Couldn't find that quote in the transcript.");
+    if (!meeting || editing) return;
+    const range = findQuote(item.quote, meeting.transcript);
+    if (range) {
+      setEvidence({ ...range, itemId: item.id, title: item.title });
+    } else {
+      setEvidence(null);
+      setNotice("Couldn't find that quote in the transcript.");
+    }
   }
 
   const eligible = meeting?.items.filter((item) => item.eligible) || [];
@@ -264,7 +271,7 @@ function App() {
           <img className="brand-mark" src={owlUrl} alt="" />
           <span>
             <strong>Minutely</strong>
-            <span>MEETING WORKSPACE</span>
+            <span>Meeting workspace</span>
           </span>
         </button>
         <button
@@ -288,7 +295,7 @@ function App() {
           />
         </label>
         <div className="section-label">
-          YOUR MEETINGS <span>{meetings.length}</span>
+          Your meetings <span>{meetings.length}</span>
         </div>
         <nav className="meeting-list" aria-label="Meetings">
           {meetings
@@ -300,6 +307,7 @@ function App() {
                 key={value.id}
                 disabled={locked || editing}
                 className={`meeting-link ${selected === value.id ? "selected" : ""}`}
+                aria-current={selected === value.id ? "page" : undefined}
                 onClick={() => setSelected(value.id)}
               >
                 {value.source === "Recording" ? (
@@ -351,7 +359,7 @@ function App() {
       <main>
         <header className="topbar">
           <span>
-            WORKSPACE / <b>MEETINGS</b>
+            Workspace <span aria-hidden="true">/</span> <b>Meetings</b>
           </span>
           <span className="privacy">
             <ShieldCheck size={15} /> Human-approved decisions
@@ -551,7 +559,7 @@ function App() {
                 hasWisprKey={Boolean(settings?.hasWisprKey)}
                 title={title}
                 draft={draft}
-                transcriptRef={transcriptRef}
+                evidence={evidence}
                 onEdit={() => {
                   setTitle(meeting.title);
                   setDraft(meeting.transcript);
@@ -603,13 +611,15 @@ function App() {
                 meeting={meeting}
                 items={visibleItems}
                 filter={filter}
+                evidenceItemId={evidence?.itemId}
                 locked={locked}
                 editing={editing}
                 onFilterChange={setFilter}
                 onAnalyze={() =>
-                  task("Analyzing transcript", async () =>
-                    upsert(await api.analyze(meeting.id)),
-                  )
+                  task("Analyzing transcript", async () => {
+                    setEvidence(null);
+                    upsert(await api.analyze(meeting.id));
+                  })
                 }
                 onDecide={(item, decision) =>
                   task(
