@@ -27,6 +27,15 @@ npm start
 Skip virtual-environment creation when `.venv` already exists. `npm start` builds
 the UI and opens a native Electron window; there is no web server to visit.
 
+The interface uses a light workspace, blue source-navigation accents, and
+larger review text, inspired by [Hallmark](https://github.com/Nutlope/hallmark)'s
+restrained visual hierarchy. Shared styling lives in `desktop/ui/style.css`;
+fonts and artwork remain bundled locally. The layout stacks on narrow windows,
+keeps keyboard focus visible, and respects the system reduced-motion preference.
+The home page includes switchable project-sync, client-call, and open-question
+examples. These are labeled illustrative data and never create or change real
+meetings; both home-page entry buttons open the existing workspace.
+
 Action analysis uses the existing local `.env` values:
 
 ```dotenv
@@ -45,6 +54,10 @@ the NRP key or alter the original CLI configuration.
 1. Choose **Record or add transcript**, paste a transcript, or import a UTF-8 `.txt` file.
 2. Choose **Analyze** and confirm sending the transcript to the configured model.
 3. Review each candidate's owner, deadline, reasoning, and source quote.
+   Click an action card, its title, or **View source** to scroll to and highlight
+   the matching transcript lines. Titles and source buttons also work with the
+   keyboard. Highlighting does not approve an item; Approve, Reject, and Undo
+   remain separate controls. A missing quote shows a notice instead of a highlight.
 4. Approve or reject items. Only confirmed items with a nonempty owner, deadline,
    and matching source quote are approvable. These rules are checked again in
    the main process when saving and exporting.
@@ -129,6 +142,7 @@ the app UI no longer exposes it.
 npm test
 & .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_desktop_worker.py -v
 npm run test:desktop
+npm run test:ui
 ```
 
 - Node tests cover approval enforcement, persistence, transcript invalidation,
@@ -141,6 +155,12 @@ npm run test:desktop
   by clicking the in-app dialog; native file pickers and capture devices are
   stubbed in these tests; no real microphone or meeting is recorded.
 - Screenshots are generated in ignored `test-artifacts/`.
+- `npm run test:ui` checks the landing page, review workspace, recording, and dialogs at
+  360-1280 px, including text contrast, keyboard entry, reduced motion, and
+  approval persistence. It also checks multiline source highlighting, scrolling,
+  missing quotes, and separation between navigation and approval. It uses
+  isolated synthetic meeting data and audio, does not call
+  transcription/model services, and saves `ui-*.png` screenshots.
 - A live service-bridge check has succeeded using a synthetic sentence and the
   configured NRP model. The local speech flow is tested with generated WebM,
   the actual checkpoint, no saved speech key, and preservation on blank output.

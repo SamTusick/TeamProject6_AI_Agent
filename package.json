@@ -6,7 +6,8 @@
     "build": "vite build",
     "start": "npm run build && electron .",
     "test": "node --test tests/desktop-store.test.cjs tests/desktop-services.test.cjs",
-    "test:desktop": "npm run build && node tests/desktop.e2e.cjs"
+    "test:desktop": "npm run build && node tests/desktop.e2e.cjs",
+    "test:ui": "npm run build && node tests/desktop.style.e2e.cjs"
   },
   "description": "Pins the official MCP filesystem server so mcp_client.py can launch it directly with node instead of through the npx shim.",
   "dependencies": {
