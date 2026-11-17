@@ -254,13 +254,19 @@ function App() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="brand">
+        <button
+          className="brand"
+          title="Back to home"
+          aria-label="Minutely home"
+          disabled={locked || editing}
+          onClick={() => setStarted(false)}
+        >
           <img className="brand-mark" src={owlUrl} alt="" />
-          <div>
+          <span>
             <strong>Minutely</strong>
             <span>MEETING WORKSPACE</span>
-          </div>
-        </div>
+          </span>
+        </button>
         <button
           className="primary new-meeting"
           disabled={locked}
