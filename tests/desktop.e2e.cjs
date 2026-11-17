@@ -65,6 +65,7 @@ async function main() {
     const page = await application.firstWindow();
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
+    await page.getByRole("button", { name: "Get started" }).click();
     await expect(
       page.getByRole("heading", { name: "Weekly project sync" }),
     ).toBeVisible();
@@ -102,6 +103,7 @@ async function main() {
       items.nth(0).getByText("Approved", { exact: true }),
     ).toBeVisible();
     await page.reload();
+    await page.getByRole("button", { name: "Get started" }).click();
     await expect(
       page
         .locator(".action-item")
@@ -253,6 +255,7 @@ async function main() {
     await page.evaluate(({ id }) => window.meetings.update(id, "Synthetic audio test", "Keep this transcript."), recordedMeeting);
     const beforeTranscription = store.read(recordedMeeting.id);
     await page.reload();
+    await page.getByRole("button", { name: "Get started" }).click();
     await page.getByRole("button", { name: "Transcribe locally (Whisper)", exact: true }).click();
     await confirmDialog(page, "Transcribe", { title: "Whisper" });
     await expect(page.getByRole("alert")).toContainText("returned no words", { timeout: 180000 });

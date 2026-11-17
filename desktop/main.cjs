@@ -379,8 +379,9 @@ app.whenReady().then(async () => {
     height: 840,
     minWidth: 480,
     minHeight: 600,
-    backgroundColor: "#f4f6f5",
-    title: "Team6 Meetings",
+    backgroundColor: "#ffffff",
+    title: "Minutely",
+    icon: path.join(__dirname, "assets", "icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,

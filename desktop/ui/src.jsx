@@ -31,6 +31,8 @@ import { findQuote, revealRange } from "./evidence.js";
 import { TranscriptPane } from "./TranscriptPane.jsx";
 import { ReviewPane } from "./ReviewPane.jsx";
 import { ConfirmDialog } from "./ConfirmDialog.jsx";
+import { Landing } from "./Landing.jsx";
+import owlUrl from "./assets/owl-avatar.jpg";
 
 const api = window.meetings;
 
@@ -91,6 +93,7 @@ function App() {
   const [elapsed, setElapsed] = useState(0);
   const [audioUrl, setAudioUrl] = useState("");
   const [consents, setConsents] = useState([]);
+  const [started, setStarted] = useState(false);
   const controller = useRef(null);
   const canvas = useRef(null);
   const transcriptRef = useRef(null);
@@ -246,13 +249,13 @@ function App() {
         (filter === "questions" && item.classification === "NEEDS_INFO"),
     ) || [];
 
+  if (!started) return <Landing onStart={() => setStarted(true)} />;
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark">
-            <AudioLines size={25} />
-          </span>
+          <img className="brand-mark" src={owlUrl} alt="" />
           <div>
             <strong>Minutely</strong>
             <span>MEETING WORKSPACE</span>
@@ -404,11 +407,12 @@ function App() {
 
         {!meeting ? (
           <section className="empty-workspace">
-            <div className="empty-symbol">
-              <AudioLines size={54} strokeWidth={1.2} />
-            </div>
-            <span className="eyebrow">TEAM6 MEETINGS</span>
+            <img className="empty-symbol" src={owlUrl} alt="" />
             <h1>Your meeting workspace</h1>
+            <p className="empty-lede">
+              Record a meeting or bring in a transcript, and Minutely will pull
+              out the commitments for you to review.
+            </p>
             <div className="empty-actions">
               <button
                 className="primary"
@@ -618,7 +622,7 @@ function App() {
           </>
         )}
         <footer className="main-footer">
-          <span>TEAM6 / DESKTOP PREVIEW</span>
+          <span>Minutely / desktop preview</span>
           <span>Local speech / Whisper base</span>
         </footer>
       </main>
