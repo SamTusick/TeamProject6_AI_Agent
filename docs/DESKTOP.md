@@ -42,7 +42,7 @@ the NRP key or alter the original CLI configuration.
 
 ### Transcript review
 
-1. Choose **New meeting**, paste a transcript, or import a UTF-8 `.txt` file.
+1. Choose **Record or add transcript**, paste a transcript, or import a UTF-8 `.txt` file.
 2. Choose **Analyze** and confirm sending the transcript to the configured model.
 3. Review each candidate's owner, deadline, reasoning, and source quote.
 4. Approve or reject items. Only confirmed items with a nonempty owner, deadline,
@@ -58,7 +58,7 @@ Human review remains necessary.
 ### Recording
 
 1. Attend your call in Zoom, Teams, or another Windows application.
-2. Select **Record a meeting** (also available inside **New meeting**).
+2. Select **Record a meeting** (also available inside **Record or add transcript**).
 3. Inform participants, obtain permission, and accept the recording prompt.
 4. The recorder mixes the default microphone and Windows system playback audio.
    The visible level display shows the mixed signal, not separate source meters.

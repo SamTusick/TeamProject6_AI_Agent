@@ -174,7 +174,7 @@ async function main() {
     );
 
     await page
-      .getByRole("button", { name: "New meeting", exact: true })
+      .getByRole("button", { name: "Record or add transcript", exact: true })
       .click();
     await page
       .getByLabel("Meeting title", { exact: true })

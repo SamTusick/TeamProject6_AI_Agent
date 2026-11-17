@@ -44,6 +44,17 @@ button.primary { background: var(--brand); border-color: var(--brand); color: #f
 button.primary:hover:not(:disabled) { background: var(--brand-strong); border-color: var(--brand-strong); }
 input, textarea { min-width: 0; width: 100%; padding: 10px 12px; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-size: 14px; }
 input::placeholder, textarea::placeholder { color: var(--faint); }
+
+/* Scrollbars: slim rounded navy thumb on an invisible track. The transparent
+   border insets the thumb so it doesn't touch the edge. Don't set
+   scrollbar-color anywhere: Chromium then ignores these rules. */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--brand-line); border: 2px solid transparent; border-radius: 999px; background-clip: padding-box; min-height: 40px; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--brand-mid); }
+::-webkit-scrollbar-thumb:active { background-color: var(--brand); }
+.sidebar ::-webkit-scrollbar-thumb { background-color: #ffffff30; }
+.sidebar ::-webkit-scrollbar-thumb:hover { background-color: #ffffff55; }
 textarea { resize: vertical; line-height: 1.7; }
 label { display: grid; gap: 7px; font-size: 13px; font-weight: 500; }
 h1, h2, h3, p { margin: 0; }
@@ -88,7 +99,7 @@ h3 { font-size: 16px; line-height: 1.45; font-weight: 500; overflow-wrap: anywhe
 .search input:focus-visible { outline: none; }
 .section-label { display: flex; justify-content: space-between; font-size: 10px; font-weight: 500; letter-spacing: .05em; color: #8fa3c4; margin: 0 8px 8px; }
 .section-label span { color: var(--amber); }
-.meeting-list { overflow-y: auto; flex: 1; margin: 0 -4px; padding: 0 4px; scrollbar-color: #ffffff30 transparent; }
+.meeting-list { overflow-y: auto; flex: 1; margin: 0 -4px; padding: 0 4px; }
 .meeting-list .muted { color: #8fa3c4; padding: 0 8px; }
 .meeting-link { display: flex; align-items: flex-start; width: 100%; text-align: left; justify-content: flex-start; background: transparent; border: 1px solid transparent; padding: 10px; margin: 2px 0; gap: 9px; color: #dbe3f0; }
 .meeting-link:hover:not(:disabled) { background: #ffffff10; border-color: transparent; }

@@ -276,7 +276,7 @@ function App() {
             setModal("new");
           }}
         >
-          <Plus size={18} /> New meeting
+          <Plus size={18} /> Record or add transcript
         </button>
         <label className="search">
           <Search size={16} />
@@ -643,7 +643,7 @@ function App() {
 
       {modal === "new" && (
         <Modal
-          title="New meeting"
+          title="Start a meeting"
           error={error}
           busy={busy}
           close={() => !busy && setModal(null)}
