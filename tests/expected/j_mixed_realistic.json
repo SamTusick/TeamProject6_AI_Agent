@@ -1,0 +1,6 @@
+{
+  "description": "A longer, multi-topic transcript combining four behaviors in one run: a directly CONFIRMED item (Q4 budget review), a NEEDS_INFO item whose owner/deadline are only stated later in the transcript and must be resolved by the Resolver agent (API key rotation), a DISCUSSED_ONLY item with no commitment (onboarding flow redesign), and a CONFIRMED item that duplicates an existing memory record from an earlier meeting (security audit) that must be skipped rather than written again. Only the budget review and the resolved API key rotation should reach output/action_items.json.",
+  "expected_classification": "CONFIRMED",
+  "expect_mcp_write": true,
+  "expected_confirmed_count": 2
+}

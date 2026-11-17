@@ -1,0 +1,6 @@
+SYNTHETIC TEST DATA - generated for automated testing, not a real meeting.
+
+Morgan: We need to migrate the staging server to the new cluster, that's decided.
+Taylor: Agreed, no question about it.
+Morgan: Nothing else on today's agenda.
+Taylor: Sounds good.

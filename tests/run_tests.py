@@ -32,7 +32,40 @@ from agent import run as run_agent  # noqa: E402
 from memory import MeetingMemory  # noqa: E402
 from verify import quote_found_in_transcript  # noqa: E402
 
-CASES = ["a_confirmed", "b_tentative", "c_discussed_only", "d_needs_info", "e_multiple_confirmed", "f_resolvable"]
+CASES = [
+    "a_confirmed", "b_tentative", "c_discussed_only", "d_needs_info",
+    "e_multiple_confirmed", "f_resolvable",
+    "h_memory_duplicate", "i_resolver_rejects_insufficient_evidence", "j_mixed_realistic",
+]
+
+# M4 cases #8 and #10 test memory.find_duplicate() against a commitment the
+# team supposedly already approved in an EARLIER meeting. Since run_case()
+# otherwise starts every case with empty memory (so earlier cases in this
+# same run can't bleed into later ones), these two cases get that one prior
+# record seeded in before the agent runs - a stand-in for "a human approved
+# this last week," not something this run approves itself.
+SEEDED_MEMORY = {
+    "h_memory_duplicate": [
+        {
+            "title": "Security audit",
+            "owner": "Jordan",
+            "deadline": "Friday",
+            "quote": "I'll finish the security audit by Friday.",
+            "meeting": "standup_2026-10-20.txt",
+            "saved_at": "2026-10-20T00:00:00+00:00",
+        },
+    ],
+    "j_mixed_realistic": [
+        {
+            "title": "Security audit",
+            "owner": "Jordan",
+            "deadline": "Friday",
+            "quote": "I'll finish the security audit by Friday.",
+            "meeting": "standup_2026-10-20.txt",
+            "saved_at": "2026-10-20T00:00:00+00:00",
+        },
+    ],
+}
 
 
 async def run_case(name: str) -> bool:
@@ -45,9 +78,13 @@ async def run_case(name: str) -> bool:
     if OUTPUT_FILE.exists():
         OUTPUT_FILE.unlink()
 
-    # Each case starts with empty memory so earlier cases can't mark it a duplicate.
+    # Each case starts with empty memory so earlier cases can't mark it a duplicate,
+    # except where SEEDED_MEMORY pre-loads one prior-meeting record on purpose (#8, #10).
     memory_file = TESTS_DIR / "_memory_tmp.json"
     memory_file.unlink(missing_ok=True)
+    seed = SEEDED_MEMORY.get(name)
+    if seed:
+        memory_file.write_text(json.dumps(seed, indent=2), encoding="utf-8")
     result = await run_agent(str(transcript_path), approve_all=True, memory=MeetingMemory(memory_file))
     memory_file.unlink(missing_ok=True)
     items = result["items"]

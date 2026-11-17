@@ -1,0 +1,5 @@
+SYNTHETIC TEST DATA - generated for automated testing, not a real meeting.
+
+Morgan: Quick check-in before we start - Jordan, the security audit is still on your plate, still due Friday, right?
+Jordan: Yes, I'll finish the security audit by Friday.
+Morgan: Perfect, thanks.

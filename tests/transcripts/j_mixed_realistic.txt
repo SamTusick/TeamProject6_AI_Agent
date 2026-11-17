@@ -1,0 +1,13 @@
+SYNTHETIC TEST DATA - generated for automated testing, not a real meeting.
+
+Morgan: Let's get through today's list. First, Casey, can you own the Q4 budget review?
+Casey: Yes, I'll finish the Q4 budget review by next Friday.
+Morgan: Great. Next, we need to rotate the API keys, that's decided.
+Taylor: Agreed, definitely happening.
+Morgan: Before we get to who owns that, quick status check - the new onboarding flow redesign is still just an idea we're kicking around, nothing locked in yet.
+Taylor: Right, we haven't committed to building it.
+Morgan: Agreed, moving on. Jordan, quick check - the security audit is still on track for Friday, right?
+Jordan: Yes, I'll finish the security audit by Friday.
+Morgan: Perfect. Okay, back to the API key rotation - Jordan, you've got that one too, due this Wednesday.
+Jordan: Got it, I'll rotate the API keys by Wednesday.
+Morgan: Great, that covers everything for today.

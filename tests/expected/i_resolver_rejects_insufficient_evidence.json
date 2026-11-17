@@ -1,0 +1,5 @@
+{
+  "description": "A clear, unhedged decision with no owner or deadline stated anywhere in the transcript, and nothing else in the transcript for the Resolver to misread as one. Per RESOLVER_PROMPT rule 3, the Resolver must finish with nulls rather than guess, so the item stays NEEDS_INFO and never reaches a write. This exercises the Resolver's instructed restraint; the quote-verbatim guardrail (validate_resolution) is the backstop that would reject a fabricated quote if the model ignored that instruction.",
+  "expected_classification": "NEEDS_INFO",
+  "expect_mcp_write": false
+}

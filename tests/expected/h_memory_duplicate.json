@@ -1,0 +1,5 @@
+{
+  "description": "A commitment that re-raises something the team already committed to in an earlier meeting (same title words, same owner, already stored in memory). The Extractor should still classify it CONFIRMED on its own merits (it is a genuine, independently-verified decision), but memory.find_duplicate() must recognize it as a repeat of the earlier commitment, so it is skipped under --approve-all and never reaches a second write.",
+  "expected_classification": "CONFIRMED",
+  "expect_mcp_write": false
+}
